@@ -21,6 +21,9 @@ HEADERS += \
 FORMS += \
   main_window.ui
 
+RESOURCES += \
+  resources.qrc
+
 unix: {
   QMAKE_CXXFLAGS *= -std=c++11
 }
