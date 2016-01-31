@@ -10,7 +10,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = lanchat
 TEMPLATE = app
 
-
 SOURCES += \
   main.cpp\
   main_window.cpp \
@@ -32,3 +31,5 @@ RC_FILE += \
 unix: {
   QMAKE_CXXFLAGS *= -std=c++11
 }
+
+DEFINES += GIT_DESCRIBE=\\\"$$system(git describe --long --always)\\\"

@@ -5,6 +5,18 @@
 LanChatApp::LanChatApp(int& argc, char** argv) :
   QApplication(argc, argv)
 {
+  setOrganizationName(QStringLiteral("Master Gekus"));
+  setApplicationName(QStringLiteral("Lan Chat"));
+#ifdef Q_CC_MSVC
+  setApplicationVersion(QStringLiteral("Version "
+                                       QT_UNICODE_LITERAL(GIT_DESCRIBE)
+                                       L" from "
+                                       QT_UNICODE_LITERAL(__DATE__) L" "
+                                       QT_UNICODE_LITERAL(__TIME__)));
+#else
+  setApplicationVersion(QStringLiteral("Version " GIT_DESCRIBE " from "
+                                       __DATE__ " " __TIME__));
+#endif
 }
 
 LanChatApp::~LanChatApp()
