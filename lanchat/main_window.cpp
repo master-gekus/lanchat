@@ -1,4 +1,5 @@
 #include "app.h"
+#include "about_box.h"
 
 #include "main_window.h"
 #include "ui_main_window.h"
@@ -15,4 +16,10 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
   delete ui;
+}
+
+void
+MainWindow::on_actionAbout_triggered()
+{
+  AboutBox(this).exec();
 }

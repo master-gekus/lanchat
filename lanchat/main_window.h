@@ -17,6 +17,10 @@ public:
 
 private:
   Ui::MainWindow *ui;
+
+private slots:
+  void on_actionAbout_triggered();
+
 };
 
 #endif // MAIN_WINDOW_H
