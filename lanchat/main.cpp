@@ -1,9 +1,9 @@
 #include "main_window.h"
-#include <QApplication>
+#include "app.h"
 
 int main(int argc, char *argv[])
 {
-  QApplication a(argc, argv);
+  LanChatApp a(argc, argv);
   MainWindow w;
   w.show();
 
