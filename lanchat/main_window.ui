@@ -45,6 +45,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionChatWindow"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionAbout">
@@ -64,6 +65,11 @@
    </property>
    <property name="shortcut">
     <string>Alt+X</string>
+   </property>
+  </action>
+  <action name="actionChatWindow">
+   <property name="text">
+    <string>Chat Window</string>
    </property>
   </action>
  </widget>

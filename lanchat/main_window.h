@@ -20,7 +20,7 @@ private:
 
 private slots:
   void on_actionAbout_triggered();
-
+  void on_actionChatWindow_triggered();
 };
 
 #endif // MAIN_WINDOW_H
