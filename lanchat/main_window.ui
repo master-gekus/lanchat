@@ -13,7 +13,22 @@
   <property name="windowTitle">
    <string>Lan Chat</string>
   </property>
-  <widget class="QWidget" name="centralWidget"/>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTreeWidget" name="treeWidget">
+      <attribute name="headerVisible">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+      </column>
+     </widget>
+    </item>
+   </layout>
+  </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
@@ -45,6 +60,8 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionCheckInterfaces"/>
+   <addaction name="actionSendUdp"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionAbout">
@@ -64,6 +81,16 @@
    </property>
    <property name="shortcut">
     <string>Alt+X</string>
+   </property>
+  </action>
+  <action name="actionCheckInterfaces">
+   <property name="text">
+    <string>Check Interfaces</string>
+   </property>
+  </action>
+  <action name="actionSendUdp">
+   <property name="text">
+    <string>Send UDP</string>
    </property>
   </action>
  </widget>
