@@ -36,3 +36,7 @@ unix: {
 }
 
 DEFINES += GIT_DESCRIBE=\\\"$$system(git describe --long --always)\\\"
+
+include(../Gqx/Gqx/GJson.pri)
+include(../Gqx/Gqx/GSelfOwnedThread.pri)
+include(../Gqx/Gqx/GUiHelpers.pri)
