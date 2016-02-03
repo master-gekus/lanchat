@@ -14,16 +14,19 @@ SOURCES += \
   main.cpp\
   main_window.cpp \
   app.cpp \
-    about_box.cpp
+    about_box.cpp \
+    chat_window.cpp
 
 HEADERS += \
   main_window.h \
   app.h \
-    about_box.h
+    about_box.h \
+    chat_window.h
 
 FORMS += \
   main_window.ui \
-    about_box.ui
+    about_box.ui \
+    chat_window.ui
 
 RESOURCES += \
   resources.qrc
