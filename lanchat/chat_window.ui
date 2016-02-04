@@ -142,6 +142,11 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>editMessage</tabstop>
+  <tabstop>btnSend</tabstop>
+  <tabstop>listHistory</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
