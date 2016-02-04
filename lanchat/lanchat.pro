@@ -16,20 +16,23 @@ SOURCES += \
   app.cpp \
   about_box.cpp \
   chat_window.cpp \
-  chat_incoming_message.cpp
+  chat_incoming_message.cpp \
+  chat_outgoing_message.cpp
 
 HEADERS += \
   main_window.h \
   app.h \
   about_box.h \
   chat_window.h \
-  chat_incoming_message.h
+  chat_incoming_message.h \
+  chat_outgoing_message.h
 
 FORMS += \
   main_window.ui \
   about_box.ui \
   chat_window.ui \
-  chat_incoming_message.ui
+  chat_incoming_message.ui \
+  chat_outgoing_message.ui
 
 RESOURCES += \
   resources.qrc
