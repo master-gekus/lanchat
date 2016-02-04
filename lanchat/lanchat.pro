@@ -14,16 +14,18 @@ SOURCES += \
   main.cpp\
   main_window.cpp \
   app.cpp \
-    about_box.cpp
+  about_box.cpp \
+  subnet_set.cpp
 
 HEADERS += \
   main_window.h \
   app.h \
-    about_box.h
+  about_box.h \
+  subnet_set.h
 
 FORMS += \
   main_window.ui \
-    about_box.ui
+  about_box.ui
 
 RESOURCES += \
   resources.qrc
