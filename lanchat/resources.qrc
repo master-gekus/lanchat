@@ -5,5 +5,7 @@
         <file>res/main_icon/48x48.png</file>
         <file>res/main_icon/64x64.png</file>
         <file>res/main_icon/128x128.png</file>
+        <file>res/bitmaps/in_arraw.png</file>
+        <file>res/bitmaps/out_arraw.png</file>
     </qresource>
 </RCC>
