@@ -1,9 +1,12 @@
 #include <QIcon>
 
 #include "app.h"
+#include "app_p.h"
 
+// ////////////////////////////////////////////////////////////////////////////
 LanChatApp::LanChatApp(int& argc, char** argv) :
-  QApplication(argc, argv)
+  QApplication(argc, argv),
+  d(new LanChatAppPrivate(this))
 {
   setOrganizationName(QStringLiteral("Master Gekus"));
   setApplicationName(QStringLiteral("Lan Chat"));
@@ -21,16 +24,14 @@ LanChatApp::LanChatApp(int& argc, char** argv) :
 
 LanChatApp::~LanChatApp()
 {
+  delete d;
 }
 
-namespace
-{
-  QIcon main_icon_;
-}
 
 QIcon
 LanChatApp::getMainIcon()
 {
+  static QIcon main_icon_;
   if (main_icon_.isNull())
     {
       main_icon_.addFile(":/res/main_icon/16x16.png");
@@ -41,4 +42,14 @@ LanChatApp::getMainIcon()
     }
 
   return main_icon_;
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
+  owner_(owner)
+{
+}
+
+LanChatAppPrivate::~LanChatAppPrivate()
+{
 }
