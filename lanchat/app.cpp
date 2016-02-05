@@ -1,9 +1,12 @@
 #include <QIcon>
 
 #include "app.h"
+#include "app_p.h"
 
+// ////////////////////////////////////////////////////////////////////////////
 LanChatApp::LanChatApp(int& argc, char** argv) :
-  QApplication(argc, argv)
+  QApplication(argc, argv),
+  d(new LanChatAppPrivate)
 {
   setOrganizationName(QStringLiteral("Master Gekus"));
   setApplicationName(QStringLiteral("Lan Chat"));
@@ -21,6 +24,7 @@ LanChatApp::LanChatApp(int& argc, char** argv) :
 
 LanChatApp::~LanChatApp()
 {
+  delete d;
 }
 
 namespace
@@ -41,4 +45,13 @@ LanChatApp::getMainIcon()
     }
 
   return main_icon_;
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+LanChatAppPrivate::LanChatAppPrivate()
+{
+}
+
+LanChatAppPrivate::~LanChatAppPrivate()
+{
 }

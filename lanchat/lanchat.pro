@@ -23,6 +23,7 @@ SOURCES += \
 HEADERS += \
   main_window.h \
   app.h \
+  app_p.h \
   about_box.h \
   chat_window.h \
   chat_incoming_message.h \
