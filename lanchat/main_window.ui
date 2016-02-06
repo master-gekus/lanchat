@@ -45,6 +45,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionSendBroadcast"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionAbout">
@@ -64,6 +65,11 @@
    </property>
    <property name="shortcut">
     <string>Alt+X</string>
+   </property>
+  </action>
+  <action name="actionSendBroadcast">
+   <property name="text">
+    <string>Send Broadcast</string>
    </property>
   </action>
  </widget>

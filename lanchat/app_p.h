@@ -38,6 +38,7 @@ signals:
 
 private slots:
   void refresh_subnet_set();
+  void socket_ready_read();
 
   friend class LanChatApp;
 };

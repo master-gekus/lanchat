@@ -17,6 +17,9 @@ public:
 public:
   static QIcon getMainIcon();
 
+public:
+  void send_broadcast();
+
 private:
   LanChatAppPrivate *d;
 

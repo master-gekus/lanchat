@@ -28,6 +28,18 @@ LanChatApp::getMainIcon()
   return main_icon_;
 }
 
+void
+LanChatApp::send_broadcast()
+{
+  QByteArray msg("This is a broadcast message!");
+  for (LanChatAppPrivate::SockAndAddress const& sock : d->sockets_)
+    {
+      quint64 len = sock.socket_->writeDatagram(msg, sock.addr_.broadcast(), LANCHAT_PORT);
+      qDebug("Sent %d bytes.", (int) len);
+    }
+}
+
+
 // ////////////////////////////////////////////////////////////////////////////
 LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   owner_(owner)
@@ -61,11 +73,37 @@ LanChatAppPrivate::refresh_subnet_set()
               delete socket;
               continue;
             }
+          connect(socket, SIGNAL(readyRead()), this, SLOT(socket_ready_read()),
+                  Qt::QueuedConnection);
           sockets_.append(SockAndAddress(socket, entry));
         }
 
       if (!errors.isEmpty())
         emit owner_->bindErrors(errors);
+    }
+}
+
+void
+LanChatAppPrivate::socket_ready_read()
+{
+  QUdpSocket *socket = dynamic_cast<QUdpSocket*>(sender());
+  if (0 == socket)
+    {
+      qDebug("LanChatAppPrivate::socket_ready_read(): invalid sender!");
+      return;
+    }
+
+  while (socket->hasPendingDatagrams())
+    {
+      QHostAddress host_address;
+      quint16 port;
+      QByteArray datagramm;
+      datagramm.resize(socket->pendingDatagramSize());
+      socket->readDatagram(datagramm.data(), datagramm.size(), &host_address, &port);
+
+      qDebug("Datagram from %s:%d: \"%s\"",
+             host_address.toString().toUtf8().constData(), port,
+             datagramm.constData());
     }
 }
 

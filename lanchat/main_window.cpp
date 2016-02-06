@@ -23,3 +23,9 @@ MainWindow::on_actionAbout_triggered()
 {
   AboutBox(this).exec();
 }
+
+void
+MainWindow::on_actionSendBroadcast_triggered()
+{
+  qApp->send_broadcast();
+}
