@@ -11,6 +11,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
 
   setWindowIcon(LanChatApp::getMainIcon());
+  connect(qApp, SIGNAL(datagram_received(QString)), this,
+          SLOT(onDatagramReceived(QString)), Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow()
@@ -22,4 +24,16 @@ void
 MainWindow::on_actionAbout_triggered()
 {
   AboutBox(this).exec();
+}
+
+void
+MainWindow::on_actionSendBroadcast_triggered()
+{
+  qApp->send_broadcast();
+}
+
+void
+MainWindow::onDatagramReceived(QString msg)
+{
+  ui->treeWidget->addTopLevelItem(new QTreeWidgetItem(QStringList() << msg));
 }

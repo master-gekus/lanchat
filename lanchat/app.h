@@ -3,6 +3,9 @@
 
 #include <QApplication>
 
+#define LANCHAT_PORT 7251
+
+class LanChatAppPrivate;
 class LanChatApp : public QApplication
 {
   Q_OBJECT
@@ -13,6 +16,22 @@ public:
 
 public:
   static QIcon getMainIcon();
+
+public:
+  void send_broadcast();
+
+private:
+  LanChatAppPrivate *d;
+
+signals:
+  void datagram_received(QString msg);
+
+  friend class LanChatAppPrivate;
 };
+
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<LanChatApp*>(QCoreApplication::instance()))
 
 #endif // LANCHATAPP_H
