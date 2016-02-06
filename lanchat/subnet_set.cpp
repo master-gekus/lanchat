@@ -56,6 +56,12 @@ SubnetSet::end() const
   return d->set_.end();
 }
 
+bool
+SubnetSet::operator ==(const SubnetSet& other) const
+{
+  return d->set_ == other.d->set_;
+}
+
 SubnetSet SubnetSet::allSubnets()
 {
   SubnetSetPrivate *p = new SubnetSetPrivate();

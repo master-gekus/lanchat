@@ -22,6 +22,10 @@ public:
   iterator begin() const;
   iterator end() const;
 
+  bool operator ==(const SubnetSet& other) const;
+  inline bool operator !=(const SubnetSet& other) const
+    { return !((*this) == other); }
+
 public:
   static SubnetSet allSubnets();
 
