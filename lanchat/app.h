@@ -3,6 +3,8 @@
 
 #include <QApplication>
 
+#define LANCHAT_PORT 7251
+
 class LanChatAppPrivate;
 class LanChatApp : public QApplication
 {
@@ -17,6 +19,9 @@ public:
 
 private:
   LanChatAppPrivate *d;
+
+signals:
+  void bindErrors(QStringList errors);
 
   friend class LanChatAppPrivate;
 };
