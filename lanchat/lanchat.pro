@@ -17,7 +17,8 @@ SOURCES += \
   about_box.cpp \
   chat_window.cpp \
   chat_incoming_message.cpp \
-  chat_outgoing_message.cpp
+  chat_outgoing_message.cpp \
+  simple_diffie_hellman.cpp
 
 HEADERS += \
   main_window.h \
@@ -26,7 +27,8 @@ HEADERS += \
   about_box.h \
   chat_window.h \
   chat_incoming_message.h \
-  chat_outgoing_message.h
+  chat_outgoing_message.h \
+  simple_diffie_hellman.h
 
 FORMS += \
   main_window.ui \
