@@ -13,6 +13,11 @@ private:
 
 private:
   LanChatApp *owner_;
+  QUuid user_uuid_;
+  QString exposed_name_;
+
+private:
+  void setExposedName(QString exposed_name);
 
 signals:
 

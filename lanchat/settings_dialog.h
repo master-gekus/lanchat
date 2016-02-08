@@ -16,6 +16,9 @@ public:
   ~SettingsDialog();
 
 private:
+  void done(int code) Q_DECL_OVERRIDE Q_DECL_FINAL;
+
+private:
   Ui::SettingsDialog *ui;
 };
 

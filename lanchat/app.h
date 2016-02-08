@@ -2,6 +2,7 @@
 #define LANCHATAPP_H
 
 #include <QApplication>
+#include <QUuid>
 
 class LanChatAppPrivate;
 class LanChatApp : public QApplication
@@ -14,6 +15,11 @@ public:
 
 public:
   static QIcon getMainIcon();
+
+public:
+  QUuid userUuid() const;
+  QString exposedName() const;
+  void setExposedName(QString exposed_name);
 
 private:
   LanChatAppPrivate *d;
