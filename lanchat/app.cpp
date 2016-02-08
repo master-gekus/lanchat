@@ -4,29 +4,12 @@
 #include "app_p.h"
 
 // ////////////////////////////////////////////////////////////////////////////
-LanChatApp::LanChatApp(int& argc, char** argv) :
-  QApplication(argc, argv),
-  d(new LanChatAppPrivate(this))
-{
-  setOrganizationName(QStringLiteral("Master Gekus"));
-  setApplicationName(QStringLiteral("Lan Chat"));
-#ifdef Q_CC_MSVC
-  setApplicationVersion(QStringLiteral("Version "
-                                       QT_UNICODE_LITERAL(GIT_DESCRIBE)
-                                       L" from "
-                                       QT_UNICODE_LITERAL(__DATE__) L" "
-                                       QT_UNICODE_LITERAL(__TIME__)));
-#else
-  setApplicationVersion(QStringLiteral("Version " GIT_DESCRIBE " from "
-                                       __DATE__ " " __TIME__));
-#endif
-}
-
+// Constructor LanChatApp::LanChatApp(int& argc, char** argv) moved to the
+// bottom of the file. See remark below.
 LanChatApp::~LanChatApp()
 {
   delete d;
 }
-
 
 QIcon
 LanChatApp::getMainIcon()
@@ -52,4 +35,26 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
 
 LanChatAppPrivate::~LanChatAppPrivate()
 {
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+// Constructor moved to the bottom of a file because it "breaks down"
+// Qt Creator IntelliSence :-(
+
+LanChatApp::LanChatApp(int& argc, char** argv) :
+  QApplication(argc, argv),
+  d(new LanChatAppPrivate(this))
+{
+  setOrganizationName(QStringLiteral("Master Gekus"));
+  setApplicationName(QStringLiteral("Lan Chat"));
+#ifdef Q_CC_MSVC
+  setApplicationVersion(QStringLiteral("Version "
+                                       QT_UNICODE_LITERAL(GIT_DESCRIBE)
+                                       L" from "
+                                       QT_UNICODE_LITERAL(__DATE__) L" "
+                                       QT_UNICODE_LITERAL(__TIME__)));
+#else
+  setApplicationVersion(QStringLiteral("Version " GIT_DESCRIBE " from "
+                                       __DATE__ " " __TIME__));
+#endif
 }
