@@ -35,7 +35,14 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionSettings"/>
+   </widget>
    <addaction name="menuNetwork"/>
+   <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
@@ -64,6 +71,14 @@
    </property>
    <property name="shortcut">
     <string>Alt+X</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings...</string>
+   </property>
+   <property name="toolTip">
+    <string>View and change global settings</string>
    </property>
   </action>
  </widget>

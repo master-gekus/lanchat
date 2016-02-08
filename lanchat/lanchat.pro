@@ -18,7 +18,8 @@ SOURCES += \
   chat_window.cpp \
   chat_incoming_message.cpp \
   chat_outgoing_message.cpp \
-  simple_diffie_hellman.cpp
+  simple_diffie_hellman.cpp \
+  settings_dialog.cpp
 
 HEADERS += \
   main_window.h \
@@ -28,14 +29,16 @@ HEADERS += \
   chat_window.h \
   chat_incoming_message.h \
   chat_outgoing_message.h \
-  simple_diffie_hellman.h
+  simple_diffie_hellman.h \
+  settings_dialog.h
 
 FORMS += \
   main_window.ui \
   about_box.ui \
   chat_window.ui \
   chat_incoming_message.ui \
-  chat_outgoing_message.ui
+  chat_outgoing_message.ui \
+  settings_dialog.ui
 
 RESOURCES += \
   resources.qrc

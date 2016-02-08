@@ -1,5 +1,6 @@
 #include "app.h"
 #include "about_box.h"
+#include "settings_dialog.h"
 
 #include "main_window.h"
 #include "ui_main_window.h"
@@ -22,4 +23,10 @@ void
 MainWindow::on_actionAbout_triggered()
 {
   AboutBox(this).exec();
+}
+
+void
+MainWindow::on_actionSettings_triggered()
+{
+  SettingsDialog(this).exec();
 }

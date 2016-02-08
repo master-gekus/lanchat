@@ -20,6 +20,7 @@ private:
 
 private slots:
   void on_actionAbout_triggered();
+  void on_actionSettings_triggered();
 
 };
 
