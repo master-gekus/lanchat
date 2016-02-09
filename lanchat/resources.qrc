@@ -7,5 +7,7 @@
         <file>res/main_icon/128x128.png</file>
         <file>res/bitmaps/in_arraw.png</file>
         <file>res/bitmaps/out_arraw.png</file>
+        <file>res/icons16/user-offline.png</file>
+        <file>res/icons16/user-online.png</file>
     </qresource>
 </RCC>
