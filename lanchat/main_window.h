@@ -24,6 +24,8 @@ private:
 private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
+  void on_actionSetOnLine_triggered();
+  void on_actionSetOffLine_triggered();
 
 // Helpers
 private:

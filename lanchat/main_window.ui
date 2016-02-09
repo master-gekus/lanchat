@@ -94,6 +94,8 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionSetOnLine"/>
+   <addaction name="actionSetOffLine"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionAbout">
@@ -121,6 +123,16 @@
    </property>
    <property name="toolTip">
     <string>View and change global settings</string>
+   </property>
+  </action>
+  <action name="actionSetOffLine">
+   <property name="text">
+    <string>Set Off-Line</string>
+   </property>
+  </action>
+  <action name="actionSetOnLine">
+   <property name="text">
+    <string>Set On-Line</string>
    </property>
   </action>
  </widget>

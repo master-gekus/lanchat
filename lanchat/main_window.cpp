@@ -63,6 +63,47 @@ MainWindow::on_actionSettings_triggered()
   SettingsDialog(this).exec();
 }
 
+namespace
+{
+  QString randow_name()
+  {
+    QChar c = 'A' + (qrand() % 26);
+    return QStringLiteral("%1 fake user").arg(c);
+  }
+}
+
+void
+MainWindow::on_actionSetOnLine_triggered()
+{
+  QList<QTreeWidgetItem*> items = ui->listUsers->selectedItems();
+  UserListItem *item = (1 != items.size()) ? 0
+                       : dynamic_cast<UserListItem*>(items.first());
+  if (0 == item)
+    {
+      upsert_user_item(QUuid::createUuid(), randow_name(), true);
+    }
+  else
+    {
+      upsert_user_item(item->uuid(), randow_name(), true);
+    }
+}
+
+void
+MainWindow::on_actionSetOffLine_triggered()
+{
+  QList<QTreeWidgetItem*> items = ui->listUsers->selectedItems();
+  UserListItem *item = (1 != items.size()) ? 0
+                       : dynamic_cast<UserListItem*>(items.first());
+  if (0 == item)
+    {
+      upsert_user_item(QUuid::createUuid(), randow_name(), false);
+    }
+  else
+    {
+      upsert_user_item(item->uuid(), randow_name(), false);
+    }
+}
+
 void
 MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_online)
 {
