@@ -1,4 +1,5 @@
 #include <QSettings>
+#include <QMap>
 
 #include "user_list_item.h"
 
@@ -19,10 +20,13 @@ private:
     settings.beginGroup(KNOWN_USERS_GROUP);
     settings.beginGroup(uuid_.toString());
     settings.setValue(USER_NAME, name_);
+
+    items.insert(uuid_, owner_);
   }
 
   ~UserListItemPrivate()
   {
+    items.remove(uuid_);
   }
 
   QIcon icon() const
@@ -44,10 +48,12 @@ private:
   QUuid uuid_;
   QString name_;
   bool is_online_;
+  static QMap<QUuid, UserListItem*> items;
 
   friend class UserListItem;
 };
 
+QMap<QUuid, UserListItem*> UserListItemPrivate::items;
 
 UserListItem::UserListItem(const QUuid& uuid, const QString& name,
                            bool is_online) :
@@ -81,4 +87,47 @@ UserListItem::data(int column, int role) const
     default:
       return QVariant();
     }
+}
+
+const QUuid&
+UserListItem::uuid() const
+{
+  return d->uuid_;
+}
+
+const QString&
+UserListItem::name() const
+{
+  return d->name_;
+}
+
+void
+UserListItem::setName(const QString& name)
+{
+  if (name == d->name_)
+    return;
+
+  d->name_ = name;
+}
+
+bool
+UserListItem::isOnline() const
+{
+  return d->is_online_;
+}
+
+void
+UserListItem::setOnline(bool is_online)
+{
+  if (d->is_online_ == is_online)
+    return;
+
+  d->is_online_ = is_online;
+}
+
+UserListItem*
+UserListItem::findItem(const QUuid& uuid)
+{
+  auto it = UserListItemPrivate::items.constFind(uuid);
+  return (UserListItemPrivate::items.constEnd() == it) ? 0 : it.value();
 }

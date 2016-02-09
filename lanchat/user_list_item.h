@@ -14,6 +14,16 @@ public:
 public:
   QVariant data(int column, int role) const Q_DECL_OVERRIDE Q_DECL_FINAL;
 
+public:
+  const QUuid& uuid() const;
+  const QString& name() const;
+  void setName(const QString& name);
+  bool isOnline() const;
+  void setOnline(bool is_online);
+
+public:
+  static UserListItem* findItem(const QUuid& uuid);
+
 private:
   UserListItemPrivate *d;
 };
