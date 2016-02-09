@@ -29,6 +29,8 @@ public:
 
 signals:
   void nonEncryptedDatagram(QHostAddress host, GJson json);
+  void userIsOnLine(QUuid uuid, QString name, QHostAddress host);
+  void userIsOffLine(QUuid uuid);
 
 private:
   LanChatAppPrivate *d;

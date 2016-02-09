@@ -1,6 +1,7 @@
 #include <QIcon>
 #include <QSettings>
 #include <QHostInfo>
+#include <QMetaMethod>
 
 #include "message_composer.h"
 
@@ -174,6 +175,47 @@ LanChatAppPrivate::socket_ready_read()
 }
 
 void
+LanChatAppPrivate::processActionNotifyOnline(const QHostAddress& host,
+                                             const GJson& json)
+{
+  QByteArray raw_uuid = json["UserUuid"].toByteArray();
+  if (raw_uuid.size() != 16)
+      return;
+
+  QUuid uuid = QUuid::fromRfc4122(raw_uuid);
+  if (qApp->userUuid() == uuid)
+    return;   // Our own uuid - ignoring!
+
+  QString name = json["UserName"].toString();
+  if (name.isEmpty())
+    return;
+
+  emit
+    owner_->userIsOnLine(uuid, name, host);
+}
+
+void
+LanChatAppPrivate::processActionNotifyOffline(const QHostAddress& host,
+                                              const GJson& json)
+{
+  Q_UNUSED(host);
+
+  QByteArray raw_uuid = json["UserUuid"].toByteArray();
+  if (raw_uuid.size() != 16)
+    {
+      qDebug("LanChatAppPrivate::processActionNotifyOffline(): invalid UUID.");
+      return;
+    }
+
+  QUuid uuid = QUuid::fromRfc4122(raw_uuid);
+  if (qApp->userUuid() == uuid)
+    return;   // Our own uuid - ignoring!
+
+  emit
+    owner_->userIsOffLine(uuid);
+}
+
+void
 LanChatAppPrivate::broadcastMessage(const GJson& json)
 {
   socket_->writeDatagram(MessageComposer::composeNonEncrypted(json),
@@ -186,7 +228,7 @@ LanChatAppPrivate::process_datagramm(const QHostAddress& host,
 {
   if (!MessageComposer::isValid(datagramm))
     {
-      qDebug("LanChatAppPrivate::process_datagramm(): invalid datagram from %s.",
+      qDebug("LanChatAppPrivate::process_datagram(): invalid datagram from %s.",
              host.toString().toUtf8().constData());
       return;
     }
@@ -197,8 +239,30 @@ LanChatAppPrivate::process_datagramm(const QHostAddress& host,
     }
   else
     {
+      GJson const msg = MessageComposer::uncomposeNonEncrypted(datagramm);
       emit
-        owner_->nonEncryptedDatagram(host, MessageComposer::uncomposeNonEncrypted(datagramm));
+        owner_->nonEncryptedDatagram(host, msg);
+
+      QByteArray action = msg["Action"].toByteArray();
+      if (action.isEmpty())
+        {
+          qDebug("LanChatAppPrivate::process_datagram(): No action in message!");
+          return;
+        }
+
+      int method_index = metaObject()->indexOfSlot(
+        QMetaObject::normalizedSignature("processAction" + action
+                                         + "(QHostAddress,GJson)"));
+      if (0 > method_index)
+        {
+          qDebug("LanChatAppPrivate::process_datagram(): "
+                 "No slot for action \"%s\"!", action.constData());
+          return;
+        }
+
+      metaObject()->method(method_index).invoke(this, Qt::QueuedConnection,
+                                                Q_ARG(QHostAddress, host),
+                                                Q_ARG(GJson, msg));
     }
 }
 

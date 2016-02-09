@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QTreeWidgetItem>
+#include <QHostAddress>
+#include <QUuid>
 
 namespace Ui {
   class MainWindow;
@@ -24,6 +26,10 @@ private:
 private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
+
+private slots:
+  void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
+  void onUserIsOffLine(QUuid uuid);
 
 // Helpers
 private:

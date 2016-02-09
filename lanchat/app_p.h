@@ -39,6 +39,10 @@ private slots:
   void notify_presence();
   void socket_ready_read();
 
+private slots:
+  void processActionNotifyOnline(const QHostAddress& host, const GJson& json);
+  void processActionNotifyOffline(const QHostAddress& host, const GJson& json);
+
 // Helpers
 private:
   void broadcastMessage(const GJson& json);

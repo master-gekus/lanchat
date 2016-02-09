@@ -44,6 +44,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
   online_header_->setHidden(true);
   offline_header_->setHidden(true);
+
+  connect(qApp, SIGNAL(userIsOnLine(QUuid,QString,QHostAddress)),
+          SLOT(onUserIsOnLine(QUuid,QString,QHostAddress)),
+          Qt::QueuedConnection);
+  connect(qApp, SIGNAL(userIsOffLine(QUuid)), SLOT(onUserIsOffLine(QUuid)),
+          Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow()
@@ -64,23 +70,48 @@ MainWindow::on_actionSettings_triggered()
 }
 
 void
+MainWindow::onUserIsOnLine(QUuid uuid, QString name, QHostAddress host)
+{
+  Q_UNUSED(host);
+
+  upsert_user_item(uuid, name, true);
+}
+
+void
+MainWindow::onUserIsOffLine(QUuid uuid)
+{
+  upsert_user_item(uuid, QString(), false);
+}
+
+void
 MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_online)
 {
   bool is_selected = false;
   UserListItem *item = UserListItem::findItem(uuid);
   if (0 != item)
     {
-      if ((item->isOnline() == is_online) && (item->name() == name))
-        return;
+      if (name.isEmpty())
+        {
+          is_online = false;
+        }
+      else
+        {
+          if ((item->isOnline() == is_online) && (item->name() == name))
+            return;
+
+          item->setName(name);
+        }
 
       is_selected = item->isSelected();
 
       ui->listUsers->takeTopLevelItem(ui->listUsers->indexOfTopLevelItem(item));
-      item->setName(name);
       item->setOnline(is_online);
     }
   else
     {
+      if (name.isEmpty())
+        return;
+
       item = new UserListItem(uuid, name, is_online);
     }
 
