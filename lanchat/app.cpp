@@ -9,7 +9,7 @@
 #include "app_p.h"
 
 #define LANCHAT_PORT 7251
-#define NOTIFY_INTERVAL 10000
+#define NOTIFY_INTERVAL 5000
 
 #define USER_DATA_GROUP QStringLiteral("User Data")
 #define USER_UUID QStringLiteral("uuid")
