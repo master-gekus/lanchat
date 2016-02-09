@@ -97,9 +97,18 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   QString name = settings.value(USER_EXPOSED_NAME).toString().trimmed();
   if (name.isEmpty())
     {
-      name = QHostInfo::localHostName().trimmed();
-      if (name.isEmpty())
-        name = QStringLiteral("<unnamed user>");
+      QByteArray user_name = qgetenv("USER");
+      if (user_name.isEmpty())
+        user_name = qgetenv("USERNAME");
+      if (user_name.isEmpty())
+        user_name = QByteArrayLiteral("<unknown user>");
+
+      QString computer_name = QHostInfo::localHostName().trimmed();
+      if (computer_name.isEmpty())
+        computer_name = QStringLiteral("<unknown host>");
+
+      name = QStringLiteral("%1 on %2").arg(QString::fromUtf8(user_name),
+                                            computer_name);
       settings.setValue(USER_EXPOSED_NAME, name);
     }
 
