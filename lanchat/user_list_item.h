@@ -3,6 +3,7 @@
 
 #include <QTreeWidgetItem>
 #include <QUuid>
+#include <QHostAddress>
 
 class UserListItemPrivate;
 class UserListItem : public QTreeWidgetItem
@@ -20,6 +21,9 @@ public:
   void setName(const QString& name);
   bool isOnline() const;
   void setOnline(bool is_online);
+
+  QHostAddress hostAddress() const;
+  void setHostAddreess(const QHostAddress& address);
 
   void updateActivity();
   int inactivityMilliseconds() const;

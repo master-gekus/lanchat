@@ -77,8 +77,9 @@ MainWindow::on_actionSettings_triggered()
 void
 MainWindow::onUserIsOnLine(QUuid uuid, QString name, QHostAddress host)
 {
-  Q_UNUSED(host);
-  upsert_user_item(uuid, name, true);
+  UserListItem *item = upsert_user_item(uuid, name, true);
+  if (0 != item)
+    item->setHostAddreess(host);
 }
 
 void
@@ -112,7 +113,7 @@ MainWindow::checkInactivity()
     upsert_user_item(uuid, QString(), false);
 }
 
-void
+UserListItem *
 MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_online)
 {
   bool is_selected = false;
@@ -127,7 +128,7 @@ MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_onl
       else
         {
           if ((item->isOnline() == is_online) && (item->name() == name))
-            return;
+            return item;
 
           item->setName(name);
         }
@@ -140,7 +141,7 @@ MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_onl
   else
     {
       if (name.isEmpty())
-        return;
+        return 0;
 
       item = new UserListItem(uuid, name, is_online);
     }
@@ -181,4 +182,6 @@ MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_onl
       ui->listUsers->setCurrentItem(item);
       ui->listUsers->scrollToItem(item);
     }
+
+  return item;
 }

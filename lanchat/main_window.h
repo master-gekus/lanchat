@@ -11,6 +11,8 @@ namespace Ui {
   class MainWindow;
 }
 
+class UserListItem;
+
 class MainWindow : public QMainWindow
 {
   Q_OBJECT
@@ -37,7 +39,7 @@ private slots:
 
 // Helpers
 private:
-  void upsert_user_item(const QUuid& uuid, const QString& name, bool is_online);
+  UserListItem* upsert_user_item(const QUuid& uuid, const QString& name, bool is_online);
 };
 
 #endif // MAIN_WINDOW_H

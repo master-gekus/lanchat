@@ -50,6 +50,7 @@ private:
   QUuid uuid_;
   QString name_;
   bool is_online_;
+  QHostAddress host_address_;
   qint64 last_activity_;
 
 private:
@@ -86,12 +87,19 @@ UserListItem::data(int column, int role) const
     case Qt::DecorationRole:
       return d->icon();
 
+    case Qt::ToolTipRole:
+      if (d->is_online_ && (!d->host_address_.isNull()))
+        return d->host_address_.toString();
+      break;
+
     case Qt::SizeHintRole:
       return QSize(100, 21);
 
     default:
-      return QVariant();
+      break;
     }
+
+  return QVariant();
 }
 
 const QUuid&
@@ -130,6 +138,25 @@ UserListItem::setOnline(bool is_online)
 
   d->is_online_ = is_online;
   updateActivity();
+}
+
+QHostAddress UserListItem::hostAddress() const
+{
+  if (d->is_online_)
+    return d->host_address_;
+
+  return QHostAddress();
+}
+
+void
+UserListItem::setHostAddreess(const QHostAddress& address)
+{
+  if (d->host_address_ == address)
+    return;
+
+  d->host_address_ = address;
+  updateActivity();
+  emitDataChanged();
 }
 
 void UserListItem::updateActivity()
