@@ -20,7 +20,8 @@ SOURCES += \
   chat_outgoing_message.cpp \
   simple_diffie_hellman.cpp \
   settings_dialog.cpp \
-  message_composer.cpp
+  message_composer.cpp \
+  user_list_item.cpp
 
 HEADERS += \
   main_window.h \
@@ -32,7 +33,8 @@ HEADERS += \
   chat_outgoing_message.h \
   simple_diffie_hellman.h \
   settings_dialog.h \
-  message_composer.h
+  message_composer.h \
+  user_list_item.h
 
 FORMS += \
   main_window.ui \
