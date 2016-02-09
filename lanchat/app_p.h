@@ -2,6 +2,7 @@
 #define LANCHATAPP_P_H
 
 #include <QUdpSocket>
+#include <QTimer>
 
 #include "app.h"
 
@@ -24,12 +25,15 @@ private:
 
   QUdpSocket* socket_;
 
+  QTimer notify_presence_timer_;
+
 private:
   void setExposedName(QString exposed_name);
 
 signals:
 
 private slots:
+  void notify_presence();
 
   friend class LanChatApp;
 };

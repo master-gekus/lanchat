@@ -6,6 +6,7 @@
 #include "app_p.h"
 
 #define LANCHAT_PORT 7251
+#define NOTIFY_INTERVAL 10000
 
 #define USER_DATA_GROUP QStringLiteral("User Data")
 #define USER_UUID QStringLiteral("uuid")
@@ -70,7 +71,8 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   owner_(owner),
   initialized_(false),
   error_string_(QStringLiteral("No error.")),
-  socket_(new QUdpSocket())
+  socket_(new QUdpSocket()),
+  notify_presence_timer_(this)
 {
   QSettings settings;
   settings.beginGroup(USER_DATA_GROUP);
@@ -100,6 +102,12 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
       return;
     }
 
+  Q_ASSERT(!notify_presence_timer_.isSingleShot());
+  connect(&notify_presence_timer_, SIGNAL(timeout()), this,
+          SLOT(notify_presence()), Qt::QueuedConnection);
+  notify_presence_timer_.start(NOTIFY_INTERVAL);
+  QMetaObject::invokeMethod(this, "notify_presence", Qt::QueuedConnection);
+
   initialized_ = true;
 }
 
@@ -124,6 +132,17 @@ LanChatAppPrivate::setExposedName(QString exposed_name)
   QSettings settings;
   settings.beginGroup(USER_DATA_GROUP);
   settings.setValue(USER_EXPOSED_NAME, exposed_name_);
+
+  QMetaObject::invokeMethod(this, "notify_presence", Qt::QueuedConnection);
+}
+
+void
+LanChatAppPrivate::notify_presence()
+{
+  static int number = 0;
+  QByteArray datagram = "This is a datagram number "
+                        + QByteArray::number(++number) + "!";
+  socket_->writeDatagram(datagram, QHostAddress::Broadcast, LANCHAT_PORT);
 }
 
 // ////////////////////////////////////////////////////////////////////////////
