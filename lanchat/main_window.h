@@ -2,6 +2,7 @@
 #define MAIN_WINDOW_H
 
 #include <QMainWindow>
+#include <QTreeWidgetItem>
 
 namespace Ui {
   class MainWindow;
@@ -17,6 +18,8 @@ public:
 
 private:
   Ui::MainWindow *ui;
+  QTreeWidgetItem *online_header_,
+                  *offline_header_;
 
 private slots:
   void on_actionAbout_triggered();
