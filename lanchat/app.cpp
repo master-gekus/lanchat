@@ -129,6 +129,11 @@ LanChatAppPrivate::~LanChatAppPrivate()
 {
   if (socket_)
     {
+      GJson json;
+      json["Action"] = "NotifyOffline";
+      json["UserUuid"] = user_uuid_.toRfc4122();
+      broadcastMessage(json);
+
       socket_->close();
       delete socket_;
     }
