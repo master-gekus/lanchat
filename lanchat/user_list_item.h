@@ -30,6 +30,7 @@ public:
 
 public:
   static UserListItem* findItem(const QUuid& uuid);
+  static QList<QPair<QUuid,QString> > loadItems();
 
 private:
   UserListItemPrivate *d;

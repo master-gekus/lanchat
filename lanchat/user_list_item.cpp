@@ -175,3 +175,29 @@ UserListItem::findItem(const QUuid& uuid)
   auto it = UserListItemPrivate::items.constFind(uuid);
   return (UserListItemPrivate::items.constEnd() == it) ? 0 : it.value();
 }
+
+QList<QPair<QUuid,QString> >
+UserListItem::loadItems()
+{
+  QList<QPair<QUuid,QString> > result;
+
+  QSettings settings;
+  settings.beginGroup(KNOWN_USERS_GROUP);
+  for (const QString& str_uuid : settings.childGroups())
+    {
+      QUuid uuid(str_uuid);
+      if (uuid.isNull())
+        continue;
+
+      settings.beginGroup(str_uuid);
+      QString name = settings.value(USER_NAME).toString().trimmed();
+      settings.endGroup();
+
+      if (name.isEmpty())
+        continue;
+
+      result.append(QPair<QUuid,QString>(uuid, name));
+    }
+
+  return result;
+}

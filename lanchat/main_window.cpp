@@ -46,6 +46,9 @@ MainWindow::MainWindow(QWidget *parent) :
   online_header_->setHidden(true);
   offline_header_->setHidden(true);
 
+  for (const auto& user_pair : UserListItem::loadItems())
+    upsert_user_item(user_pair.first, user_pair.second, false);
+
   connect(qApp, SIGNAL(userIsOnLine(QUuid,QString,QHostAddress)),
           SLOT(onUserIsOnLine(QUuid,QString,QHostAddress)),
           Qt::QueuedConnection);
