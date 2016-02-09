@@ -76,6 +76,8 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   socket_(new QUdpSocket()),
   notify_presence_timer_(this)
 {
+  qRegisterMetaType<QHostAddress>("QHostAddress");
+
   QSettings settings;
   settings.beginGroup(USER_DATA_GROUP);
   QUuid uuid = settings.value(USER_UUID).toUuid();

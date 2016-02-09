@@ -2,6 +2,9 @@
 #define MAIN_WINDOW_H
 
 #include <QMainWindow>
+#include <QHostAddress>
+
+#include "GJson.h"
 
 namespace Ui {
   class MainWindow;
@@ -21,6 +24,8 @@ private:
 private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
+
+  void nonEncryptedDatagram(QHostAddress host, GJson json);
 
 };
 

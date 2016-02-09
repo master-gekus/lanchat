@@ -12,6 +12,9 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
 
   setWindowIcon(LanChatApp::getMainIcon());
+
+  connect(qApp, SIGNAL(nonEncryptedDatagram(QHostAddress,GJson)), this,
+          SLOT(nonEncryptedDatagram(QHostAddress,GJson)), Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow()
@@ -29,4 +32,13 @@ void
 MainWindow::on_actionSettings_triggered()
 {
   SettingsDialog(this).exec();
+}
+
+void
+MainWindow::nonEncryptedDatagram(QHostAddress host, GJson json)
+{
+  QTreeWidgetItem *item = new QTreeWidgetItem();
+  item->setText(0, QStringLiteral("%1: %2").arg(host.toString(),
+    QString::fromUtf8(json.toJson(GJson::MinSize))));
+  ui->treeWidget->addTopLevelItem(item);
 }

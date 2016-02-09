@@ -47,6 +47,7 @@ private:
   friend class LanChatApp;
 };
 
+Q_DECLARE_METATYPE(QHostAddress)
 
 #endif // LANCHATAPP_P_H
 
