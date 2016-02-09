@@ -46,7 +46,7 @@ private slots:
 // Helpers
 private:
   void broadcastMessage(const GJson& json);
-  void process_datagramm(const QHostAddress& host, const QByteArray& datagramm);
+  void process_datagram(const QHostAddress& host, const QByteArray& datagramm);
 
   friend class LanChatApp;
 };

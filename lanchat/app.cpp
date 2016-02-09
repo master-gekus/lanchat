@@ -181,7 +181,7 @@ LanChatAppPrivate::socket_ready_read()
       QByteArray datagramm;
       datagramm.resize(socket_->pendingDatagramSize());
       socket_->readDatagram(datagramm.data(), datagramm.size(), &host_address);
-      process_datagramm(QHostAddress(host_address.toIPv4Address()), datagramm);
+      process_datagram(QHostAddress(host_address.toIPv4Address()), datagramm);
     }
 }
 
@@ -234,7 +234,7 @@ LanChatAppPrivate::broadcastMessage(const GJson& json)
 }
 
 void
-LanChatAppPrivate::process_datagramm(const QHostAddress& host,
+LanChatAppPrivate::process_datagram(const QHostAddress& host,
                                      const QByteArray& datagramm)
 {
   if (!MessageComposer::isValid(datagramm))
