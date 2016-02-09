@@ -25,6 +25,9 @@ private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
 
+// Helpers
+private:
+  void upsert_user_item(const QUuid& uuid, const QString& name, bool is_online);
 };
 
 #endif // MAIN_WINDOW_H

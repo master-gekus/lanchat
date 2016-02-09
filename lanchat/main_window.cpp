@@ -1,6 +1,7 @@
 #include "app.h"
 #include "about_box.h"
 #include "settings_dialog.h"
+#include "user_list_item.h"
 
 #include "main_window.h"
 #include "ui_main_window.h"
@@ -60,4 +61,63 @@ void
 MainWindow::on_actionSettings_triggered()
 {
   SettingsDialog(this).exec();
+}
+
+void
+MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_online)
+{
+  bool is_selected = false;
+  UserListItem *item = UserListItem::findItem(uuid);
+  if (0 != item)
+    {
+      if ((item->isOnline() == is_online) && (item->name() == name))
+        return;
+
+      is_selected = item->isSelected();
+
+      ui->listUsers->takeTopLevelItem(ui->listUsers->indexOfTopLevelItem(item));
+      item->setName(name);
+      item->setOnline(is_online);
+    }
+  else
+    {
+      item = new UserListItem(uuid, name, is_online);
+    }
+
+  int first_index = is_online ? 1
+                    : ui->listUsers->indexOfTopLevelItem(offline_header_) + 1;
+  int last_index = is_online
+                   ? ui->listUsers->indexOfTopLevelItem(offline_header_)
+                   : ui->listUsers->topLevelItemCount();
+
+  // It is highly unlikely that we will have a lot of items. It is not
+  // necessary to use any algorithms like a binary insertions
+  for(; first_index < last_index; ++first_index)
+    {
+      UserListItem *candidate
+        = dynamic_cast<UserListItem*>(ui->listUsers->topLevelItem(first_index));
+
+      Q_ASSERT(0 != candidate);
+
+      if (candidate->name() > item->name())
+        break;
+    }
+
+  ui->listUsers->insertTopLevelItem(first_index, item);
+
+  online_header_->setHidden(
+    1 == ui->listUsers->indexOfTopLevelItem(offline_header_)
+  );
+
+  offline_header_->setHidden(
+    (ui->listUsers->topLevelItemCount() - 1)
+     == ui->listUsers->indexOfTopLevelItem(offline_header_)
+  );
+
+  if (is_selected)
+    {
+      item->setSelected(true);
+      ui->listUsers->setCurrentItem(item);
+      ui->listUsers->scrollToItem(item);
+    }
 }
