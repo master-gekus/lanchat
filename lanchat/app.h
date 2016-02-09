@@ -3,6 +3,9 @@
 
 #include <QApplication>
 #include <QUuid>
+#include <QHostAddress>
+
+#include "GJson.h"
 
 class LanChatAppPrivate;
 class LanChatApp : public QApplication
@@ -24,6 +27,8 @@ public:
   QString exposedName() const;
   void setExposedName(QString exposed_name);
 
+signals:
+  void nonEncryptedDatagram(QHostAddress host, GJson json);
 
 private:
   LanChatAppPrivate *d;

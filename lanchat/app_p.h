@@ -3,6 +3,7 @@
 
 #include <QUdpSocket>
 #include <QTimer>
+#include <QHostAddress>
 
 #include "GJson.h"
 
@@ -36,10 +37,12 @@ signals:
 
 private slots:
   void notify_presence();
+  void socket_ready_read();
 
 // Helpers
 private:
   void broadcastMessage(const GJson& json);
+  void process_datagramm(const QHostAddress& host, const QByteArray& datagramm);
 
   friend class LanChatApp;
 };

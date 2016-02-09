@@ -104,6 +104,9 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
       return;
     }
 
+  connect(socket_, SIGNAL(readyRead()), this, SLOT(socket_ready_read()),
+          Qt::QueuedConnection);
+
   Q_ASSERT(!notify_presence_timer_.isSingleShot());
   connect(&notify_presence_timer_, SIGNAL(timeout()), this,
           SLOT(notify_presence()), Qt::QueuedConnection);
@@ -149,10 +152,52 @@ LanChatAppPrivate::notify_presence()
 }
 
 void
+LanChatAppPrivate::socket_ready_read()
+{
+  QUdpSocket *socket = dynamic_cast<QUdpSocket*>(sender());
+  if ((0 == socket) || (socket != socket_))
+    {
+      qDebug("LanChatAppPrivate::socket_ready_read(): invalid sender!");
+      return;
+    }
+
+  while (socket_->hasPendingDatagrams())
+    {
+      QHostAddress host_address;
+      QByteArray datagramm;
+      datagramm.resize(socket_->pendingDatagramSize());
+      socket_->readDatagram(datagramm.data(), datagramm.size(), &host_address);
+      process_datagramm(QHostAddress(host_address.toIPv4Address()), datagramm);
+    }
+}
+
+void
 LanChatAppPrivate::broadcastMessage(const GJson& json)
 {
   socket_->writeDatagram(MessageComposer::composeNonEncrypted(json),
                          QHostAddress::Broadcast, LANCHAT_PORT);
+}
+
+void
+LanChatAppPrivate::process_datagramm(const QHostAddress& host,
+                                     const QByteArray& datagramm)
+{
+  if (!MessageComposer::isValid(datagramm))
+    {
+      qDebug("LanChatAppPrivate::process_datagramm(): invalid datagram from %s.",
+             host.toString().toUtf8().constData());
+      return;
+    }
+
+  if (MessageComposer::isEncrypted(datagramm))
+    {
+      qDebug("Encryption is not supported now!");
+    }
+  else
+    {
+      emit
+        owner_->nonEncryptedDatagram(host, MessageComposer::uncomposeNonEncrypted(datagramm));
+    }
 }
 
 // ////////////////////////////////////////////////////////////////////////////

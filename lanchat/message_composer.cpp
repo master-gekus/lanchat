@@ -22,7 +22,7 @@ quint32 MessageComposer::crc32(quint32 crc, const void* data, size_t data_len)
   return (crc ^ 0xffffffffL);
 }
 
-QByteArray MessageComposer::composeNonEncrypted(GJson msg)
+QByteArray MessageComposer::composeNonEncrypted(const GJson& msg)
 {
   QByteArray uncompressed = msg.msgpack();
   Q_ASSERT(uncompressed.size() <= 0x3FFF);
@@ -48,6 +48,49 @@ QByteArray MessageComposer::composeNonEncrypted(GJson msg)
     = crc32(message.constData(), message.size() - 4);
 
   return message;
+}
+
+bool
+MessageComposer::isValid(const QByteArray& msg)
+{
+  if (7 > msg.size())
+    return false;
+
+  const char *data = msg.constData();
+  quint16 flags = *((quint16*)data);
+  if ((0 != (flags & 0x8000)) && (0 == (flags & 0x3FFF)))
+    return false;
+
+  quint32 crc_calculated = crc32(data, msg.size() - sizeof(quint32));
+  quint32 crc_sent = *((quint32*)(data + msg.size() - sizeof(quint32)));
+
+  return (crc_calculated == crc_sent);
+}
+
+bool
+MessageComposer::isEncrypted(const QByteArray& msg)
+{
+  return (msg.size() > 1) && (0 != (msg[0] & 0x40));
+}
+
+GJson
+MessageComposer::uncomposeNonEncrypted(const QByteArray& msg)
+{
+  Q_ASSERT(7 <= msg.size());
+
+  const char *data = msg.constData();
+  quint16 flags = *((quint16*)data);
+  if (0 != (flags & 0x8000))
+    {
+      quint8 *cdata = (quint8*)alloca(msg.size() - 2);
+      *((quint32*)cdata) = flags & 0x3FFF;
+      memmove(cdata + 4, data + 2, msg.size() - 6);
+      return GJson::msgunpack(qUncompress(cdata, msg.size() - 2));
+    }
+  else
+    {
+      return GJson::msgunpack(data + 2, msg.size() - 6);
+    }
 }
 
 namespace

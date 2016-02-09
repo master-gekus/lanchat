@@ -32,7 +32,13 @@ namespace MessageComposer
  *
  */
 
-  QByteArray composeNonEncrypted(GJson msg);
+  /* Composing */
+  QByteArray composeNonEncrypted(const GJson& msg);
+
+  /* Uncomposing */
+  bool isValid(const QByteArray& msg);
+  bool isEncrypted(const QByteArray& msg);
+  GJson uncomposeNonEncrypted(const QByteArray& msg);
 }
 
 #endif // MESSAGECOMPOSER_H
