@@ -2,6 +2,8 @@
 #include <QSettings>
 #include <QHostInfo>
 
+#include "message_composer.h"
+
 #include "app.h"
 #include "app_p.h"
 
@@ -139,10 +141,18 @@ LanChatAppPrivate::setExposedName(QString exposed_name)
 void
 LanChatAppPrivate::notify_presence()
 {
-  static int number = 0;
-  QByteArray datagram = "This is a datagram number "
-                        + QByteArray::number(++number) + "!";
-  socket_->writeDatagram(datagram, QHostAddress::Broadcast, LANCHAT_PORT);
+  GJson json;
+  json["Action"] = "NotifyOnline";
+  json["UserUuid"] = user_uuid_.toRfc4122();
+  json["UserName"] = exposed_name_;
+  broadcastMessage(json);
+}
+
+void
+LanChatAppPrivate::broadcastMessage(const GJson& json)
+{
+  socket_->writeDatagram(MessageComposer::composeNonEncrypted(json),
+                         QHostAddress::Broadcast, LANCHAT_PORT);
 }
 
 // ////////////////////////////////////////////////////////////////////////////

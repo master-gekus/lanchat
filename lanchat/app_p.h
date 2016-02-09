@@ -4,6 +4,8 @@
 #include <QUdpSocket>
 #include <QTimer>
 
+#include "GJson.h"
+
 #include "app.h"
 
 class LanChatAppPrivate : public QObject
@@ -34,6 +36,10 @@ signals:
 
 private slots:
   void notify_presence();
+
+// Helpers
+private:
+  void broadcastMessage(const GJson& json);
 
   friend class LanChatApp;
 };
