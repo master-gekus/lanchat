@@ -1,4 +1,5 @@
 #include <QSettings>
+#include <QDateTime>
 #include <QMap>
 
 #include "user_list_item.h"
@@ -14,7 +15,8 @@ private:
     owner_(owner),
     uuid_(uuid),
     name_(name),
-    is_online_(is_online)
+    is_online_(is_online),
+    last_activity_(QDateTime::currentMSecsSinceEpoch())
   {
     QSettings settings;
     settings.beginGroup(KNOWN_USERS_GROUP);
@@ -48,6 +50,9 @@ private:
   QUuid uuid_;
   QString name_;
   bool is_online_;
+  qint64 last_activity_;
+
+private:
   static QMap<QUuid, UserListItem*> items;
 
   friend class UserListItem;
@@ -108,6 +113,7 @@ UserListItem::setName(const QString& name)
     return;
 
   d->name_ = name;
+  updateActivity();
 }
 
 bool
@@ -123,6 +129,17 @@ UserListItem::setOnline(bool is_online)
     return;
 
   d->is_online_ = is_online;
+  updateActivity();
+}
+
+void UserListItem::updateActivity()
+{
+  d->last_activity_ = QDateTime::currentMSecsSinceEpoch();
+}
+
+int UserListItem::inactivityMilliseconds() const
+{
+  return (int)(QDateTime::currentMSecsSinceEpoch() - d->last_activity_);
 }
 
 UserListItem*

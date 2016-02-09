@@ -21,6 +21,9 @@ public:
   bool isOnline() const;
   void setOnline(bool is_online);
 
+  void updateActivity();
+  int inactivityMilliseconds() const;
+
 public:
   static UserListItem* findItem(const QUuid& uuid);
 

@@ -23,6 +23,8 @@ public:
   bool isInitialized() const;
   const QString& errorString() const;
 
+  int notifyInternal() const;
+
   QUuid userUuid() const;
   QString exposedName() const;
   void setExposedName(QString exposed_name);

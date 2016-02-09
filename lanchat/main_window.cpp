@@ -10,7 +10,8 @@ MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   ui(new Ui::MainWindow),
   online_header_(0),
-  offline_header_(0)
+  offline_header_(0),
+  check_inactivity_timer_(this)
 {
   ui->setupUi(this);
 
@@ -50,6 +51,10 @@ MainWindow::MainWindow(QWidget *parent) :
           Qt::QueuedConnection);
   connect(qApp, SIGNAL(userIsOffLine(QUuid)), SLOT(onUserIsOffLine(QUuid)),
           Qt::QueuedConnection);
+  connect(&check_inactivity_timer_, SIGNAL(timeout()), SLOT(checkInactivity()),
+          Qt::QueuedConnection);
+
+  check_inactivity_timer_.start(1000);
 }
 
 MainWindow::~MainWindow()
@@ -73,7 +78,6 @@ void
 MainWindow::onUserIsOnLine(QUuid uuid, QString name, QHostAddress host)
 {
   Q_UNUSED(host);
-
   upsert_user_item(uuid, name, true);
 }
 
@@ -84,12 +88,38 @@ MainWindow::onUserIsOffLine(QUuid uuid)
 }
 
 void
+MainWindow::checkInactivity()
+{
+  QList<QUuid> uuids;
+  int inactivity_limit = qApp->notifyInternal() * 3 + 1000;
+  int last_index = ui->listUsers->indexOfTopLevelItem(offline_header_);
+  for (int i = 1; i < last_index; i++)
+    {
+      UserListItem *item
+        = dynamic_cast<UserListItem*>(ui->listUsers->topLevelItem(i));
+
+      Q_ASSERT(0 != item);
+      if (item->inactivityMilliseconds() > inactivity_limit)
+        uuids.append(item->uuid());
+    }
+
+  if (uuids.isEmpty())
+    return;
+
+  qDebug("Items became inactive!");
+
+  for (const QUuid& uuid : uuids)
+    upsert_user_item(uuid, QString(), false);
+}
+
+void
 MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_online)
 {
   bool is_selected = false;
   UserListItem *item = UserListItem::findItem(uuid);
   if (0 != item)
     {
+      item->updateActivity();
       if (name.isEmpty())
         {
           is_online = false;

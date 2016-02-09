@@ -51,6 +51,12 @@ LanChatApp::errorString() const
   return d->error_string_;
 }
 
+int
+LanChatApp::notifyInternal() const
+{
+  return NOTIFY_INTERVAL;
+}
+
 QUuid
 LanChatApp::userUuid() const
 {

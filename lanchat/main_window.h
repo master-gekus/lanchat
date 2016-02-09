@@ -5,6 +5,7 @@
 #include <QTreeWidgetItem>
 #include <QHostAddress>
 #include <QUuid>
+#include <QTimer>
 
 namespace Ui {
   class MainWindow;
@@ -22,6 +23,7 @@ private:
   Ui::MainWindow *ui;
   QTreeWidgetItem *online_header_,
                   *offline_header_;
+  QTimer check_inactivity_timer_;
 
 private slots:
   void on_actionAbout_triggered();
@@ -30,6 +32,8 @@ private slots:
 private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void onUserIsOffLine(QUuid uuid);
+
+  void checkInactivity();
 
 // Helpers
 private:
