@@ -17,9 +17,13 @@ public:
   static QIcon getMainIcon();
 
 public:
+  bool isInitialized() const;
+  const QString& errorString() const;
+
   QUuid userUuid() const;
   QString exposedName() const;
   void setExposedName(QString exposed_name);
+
 
 private:
   LanChatAppPrivate *d;

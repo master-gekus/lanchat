@@ -5,6 +5,8 @@
 #include "app.h"
 #include "app_p.h"
 
+#define LANCHAT_PORT 7251
+
 #define USER_DATA_GROUP QStringLiteral("User Data")
 #define USER_UUID QStringLiteral("uuid")
 #define USER_EXPOSED_NAME QStringLiteral("Exposed Name")
@@ -33,6 +35,18 @@ LanChatApp::getMainIcon()
   return main_icon_;
 }
 
+bool
+LanChatApp::isInitialized() const
+{
+  return d->initialized_;
+}
+
+const QString&
+LanChatApp::errorString() const
+{
+  return d->error_string_;
+}
+
 QUuid
 LanChatApp::userUuid() const
 {
@@ -53,7 +67,10 @@ LanChatApp::setExposedName(QString exposed_name)\
 
 // ////////////////////////////////////////////////////////////////////////////
 LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
-  owner_(owner)
+  owner_(owner),
+  initialized_(false),
+  error_string_(QStringLiteral("No error.")),
+  socket_(new QUdpSocket())
 {
   QSettings settings;
   settings.beginGroup(USER_DATA_GROUP);
@@ -75,10 +92,24 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
 
   user_uuid_ = uuid;
   exposed_name_ = name;
+
+  if (!socket_->bind(LANCHAT_PORT, QUdpSocket::ReuseAddressHint | QUdpSocket::ShareAddress))
+    {
+      error_string_ = QStringLiteral("Error bind socket to port %1: %2.")
+        .arg(LANCHAT_PORT).arg(socket_->errorString());
+      return;
+    }
+
+  initialized_ = true;
 }
 
 LanChatAppPrivate::~LanChatAppPrivate()
 {
+  if (socket_)
+    {
+      socket_->close();
+      delete socket_;
+    }
 }
 
 void
