@@ -75,6 +75,12 @@ LanChatApp::setExposedName(QString exposed_name)\
   d->setExposedName(exposed_name);
 }
 
+void
+LanChatApp::sendDatagram(const QHostAddress& host, const QByteArray& data)
+{
+  d->socket_->writeDatagram(data, host, LANCHAT_PORT);
+}
+
 // ////////////////////////////////////////////////////////////////////////////
 LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   owner_(owner),

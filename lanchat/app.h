@@ -29,6 +29,9 @@ public:
   QString exposedName() const;
   void setExposedName(QString exposed_name);
 
+public:
+  void sendDatagram(const QHostAddress& host, const QByteArray& data);
+
 signals:
   void nonEncryptedDatagram(QHostAddress host, GJson json);
   void userIsOnLine(QUuid uuid, QString name, QHostAddress host);
