@@ -151,7 +151,8 @@ namespace
   }
 
   /* ENCRYPED_DATA additional payload
-   * + 0 4 bytes CRC32 of non-encrypted data
+   * + 0 4 bytes CRC32 of data
+   * + 4 4 bytes Message id
    */
   #pragma pack(push, 1)
   #ifdef Q_CC_MSVC
@@ -160,13 +161,13 @@ namespace
   struct ses_enc_data
   {
     quint32 crc32;
+    quint32 id;
     quint8 data[];
   };
   #ifdef Q_CC_MSVC
     #pragma warning(default: 4200)
   #endif
   #pragma pack(pop)
-  static_assert(sizeof(quint32) == sizeof(ses_enc_data), "Invalid structure packing!");
 
   void enc_dec_buf(void *buf, size_t cb_buf, const void* key)
   {
@@ -176,14 +177,14 @@ namespace
       *(b++) ^= k[i % DiffieHellman::KeySize];
   }
 
-  void send_encrypted_data(EncryptionSession* s, const QByteArray& msg)
+  void send_encrypted_data(EncryptionSession* s, const EncryptedMessage& msg)
   {
     int uncompressed_size = 0;
-    QByteArray to_encrypt(msg);
-    QByteArray compressed = qCompress(msg, 9);
-    if ((compressed.size() - 4) < msg.size())
+    QByteArray to_encrypt(msg.data());
+    QByteArray compressed = qCompress(msg.data(), 9);
+    if ((compressed.size() - 4) < msg.data().size())
       {
-        uncompressed_size = msg.size();
+        uncompressed_size = msg.data().size();
         to_encrypt = compressed.mid(4);
       }
 
@@ -192,7 +193,9 @@ namespace
                                                      ENCRYPED_DATA,
                                                      sizeof(ses_enc_data)
                                                      + to_encrypt.size());
-    d->crc32 = MessageComposer::crc32(msg);
+    d->crc32 = MessageComposer::crc32(msg.data());
+    d->id = msg.id();
+    Q_ASSERT(0 < d->id);
     memmove(d->data, to_encrypt.constData(), to_encrypt.size());
     enc_dec_buf(d->data, to_encrypt.size(), DiffieHellman::raw_data(s->Key));
     qApp->sendDatagram(s->target_host,
@@ -200,7 +203,7 @@ namespace
                                                          uncompressed_size));
   }
 
-  bool decrypt_data(QByteArray& result, EncryptionSession* s,
+  quint32 decrypt_data(QByteArray& result, EncryptionSession* s,
                     const ses_enc_data *enc_data, int data_size,
                     int uncompressed_size)
   {
@@ -224,10 +227,10 @@ namespace
     if (MessageComposer::crc32(result) != enc_data->crc32)
       {
         qDebug("Invalid CRC32 inside encrypted data.");
-        return false;
+        return 0;
       }
 
-    return false;
+    return enc_data->id;
   }
 
 }
@@ -408,7 +411,7 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
 
   if (session->key_created)
     {
-      send_encrypted_data(session, msg.data());
+      send_encrypted_data(session, msg);
       emit
         sendingResult(msg, true, QString());
     }
@@ -502,7 +505,7 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
 
         for (const EncryptedMessage& msg : s->waiting_messages)
           {
-            send_encrypted_data(s, msg.data());
+            send_encrypted_data(s, msg);
             emit
               sendingResult(msg, true, QString());
           }
@@ -526,16 +529,23 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
           }
 
         QByteArray result;
-        if (!decrypt_data(result, s, (const ses_enc_data*)(h + 1),
-                          datagram.size() - sizeof(enc_msg_header)
-                          - sizeof(ses_enc_data),
-                          uncompressed_size))
-          return;
-
+        quint32 msg_id =  decrypt_data(result, s, (const ses_enc_data*)(h + 1),
+                                       datagram.size() - sizeof(enc_msg_header)
+                                       - sizeof(ses_enc_data),
+                                       uncompressed_size);
+        if (0 == msg_id)
+          {
+            // Bad decrypted
+            return;
+          }
+        else
+          {
+            // Good decrypted
+          }
       }
       break;
 
-    case SESSION_DESTROYED:
+//    case SESSION_DESTROYED:
     default:
       qDebug("Unknown or unsupported encrypted message type: 0x%02X", h->type);
       return;

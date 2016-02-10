@@ -27,7 +27,7 @@ public:
   QByteArray data() const;
 
 private:
-  EncryptedMessage(const QByteArray& data);
+  explicit EncryptedMessage(const QByteArray& data);
 
 private:
   QExplicitlySharedDataPointer<EncryptedMessagePrivate> d;
