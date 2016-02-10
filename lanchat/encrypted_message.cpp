@@ -29,6 +29,17 @@ namespace
       sessions_by_target.insert(target_uuid, this);
     }
 
+    EncryptionSession(const QUuid& session_id, const QUuid& target,
+                      const QHostAddress& host) :
+      id(session_id),
+      target_uuid(target),
+      target_host(host),
+      key_created(true)
+    {
+      sessions_by_id.insert(id, this);
+      sessions_by_target.insert(target_uuid, this);
+    }
+
     ~EncryptionSession()
     {
       sessions_by_id.remove(id);
@@ -431,9 +442,7 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
           = QUuid::fromRfc4122(QByteArray((const char*)d->requester_uuid,
                                           sizeof(d->requester_uuid)));
 
-        s = new EncryptionSession(requester_uuid, host);
-        s->id = session_id;
-        s->key_created = true;
+        s = new EncryptionSession(session_id, requester_uuid, host);
         DiffieHellman::from_raw(s->p, d->p);
         DiffieHellman::from_raw(s->q, d->q);
         DiffieHellman::from_raw(s->A, d->A);
