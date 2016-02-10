@@ -34,7 +34,12 @@ template <typename KT>
 class SimpleDiffieHellman
 {
 public:
+  typedef KT KeyType;
+  enum {KeySize = sizeof(KT)};
+
+public:
   // Methods that require specialization
+  // Now specialization realized for quint32, AKA unsigned int
   static void mul(KT& r, const KT& a, const KT& b, const KT& m);
   static void createRandom(KT& p);
   static void createRandom(KT& p, const KT& m);
@@ -43,7 +48,16 @@ public:
 
 public:
   // Methods that does not require specialization
-  // Now specialization realized for quint32, AKA unsigned int
+  static const void* raw_data(const KT& key)
+  {
+    return &key;
+  }
+
+  static void from_raw(KT& key, const void* data)
+  {
+    memmove(&key, data, KeySize);
+  }
+
   static bool isOdd(const KT& r)
   {
     return !isZero(r & 0x1);
