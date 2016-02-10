@@ -114,6 +114,24 @@ MessageComposer::uncomposeNonEncrypted(const QByteArray& msg)
     }
 }
 
+QByteArray
+MessageComposer::uncomposeEncrypted(const QByteArray& msg,
+                                    int& uncompressed_size)
+{
+  quint16 flags = *((quint16 const*)msg.constData());
+  if (flags & 0x8000)
+    {
+      uncompressed_size = flags & 0x3FFF;
+    }
+  else
+    {
+      uncompressed_size = 0;
+    }
+
+  return msg.mid(2, msg.size() - 6);
+}
+
+
 namespace
 {
   quint32 crctable[256] = {

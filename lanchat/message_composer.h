@@ -43,6 +43,7 @@ namespace MessageComposer
   bool isValid(const QByteArray& msg);
   bool isEncrypted(const QByteArray& msg);
   GJson uncomposeNonEncrypted(const QByteArray& msg);
+  QByteArray uncomposeEncrypted(const QByteArray& msg, int& uncompressed_size);
 }
 
 #endif // MESSAGECOMPOSER_H
