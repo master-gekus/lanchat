@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QUuid>
 #include <QTimer>
+#include <QHostAddress>
 
 class EncryptedMessagePrivate;
 class LanChatApp;
@@ -61,6 +62,8 @@ signals:
 
 private slots:
   void check_expired();
+  void onEncrypedDatagram(QHostAddress host, QByteArray datagram,
+                          int uncompressed_size);
 };
 
 #define gEmm (EncryptedMessageManager::instance())

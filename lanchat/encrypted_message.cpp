@@ -99,22 +99,43 @@ namespace
   };
   #pragma pack(pop)
 
-  void initiate_session(EncryptionSession* session)
+  void initiate_session(EncryptionSession* s)
   {
-    DiffieHellman::prepareRequest(session->p, session->q, session->a,
-                                  session->A);
+    DiffieHellman::prepareRequest(s->p, s->q, s->a, s->A);
     QByteArray data;
-    ses_req_data* d = (ses_req_data*)precompose_data(data, session,
+    ses_req_data* d = (ses_req_data*)precompose_data(data, s,
                                                      SESSION_REQUEST,
                                                      sizeof(ses_req_data));
     memmove(d->requester_uuid, qApp->userUuid().toRfc4122().constData(),
             sizeof(d->requester_uuid));
 
-    memmove(d->p, DiffieHellman::raw_data(session->p), sizeof(d->p));
-    memmove(d->q, DiffieHellman::raw_data(session->q), sizeof(d->q));
-    memmove(d->A, DiffieHellman::raw_data(session->A), sizeof(d->A));
+    memmove(d->p, DiffieHellman::raw_data(s->p), sizeof(d->p));
+    memmove(d->q, DiffieHellman::raw_data(s->q), sizeof(d->q));
+    memmove(d->A, DiffieHellman::raw_data(s->A), sizeof(d->A));
 
-    qApp->sendDatagram(session->target_host,
+    qApp->sendDatagram(s->target_host,
+                       MessageComposer::composeEncrypted(data, 0));
+  }
+
+  /* SESSION_CONFIRM additional payload
+   * + 0 B
+   */
+  #pragma pack(push, 1)
+  struct ses_resp_data
+  {
+    quint8 B[DiffieHellman::KeySize];
+  };
+  #pragma pack(pop)
+
+  void initiate_responce(EncryptionSession* s)
+  {
+    DiffieHellman::prepareResponse(s->p, s->q, s->A, s->b, s->B, s->Key);
+    QByteArray data;
+    ses_resp_data* d = (ses_resp_data*)precompose_data(data, s,
+                                                       SESSION_CONFIRM,
+                                                       sizeof(ses_resp_data));
+    memmove(d->B, DiffieHellman::raw_data(s->B), sizeof(d->B));
+    qApp->sendDatagram(s->target_host,
                        MessageComposer::composeEncrypted(data, 0));
   }
 
@@ -219,7 +240,12 @@ EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
   Q_ASSERT(0 == manager);
   manager = this;
 
+  qRegisterMetaType<QHostAddress>("QHostAddress");
   qRegisterMetaType<EncryptedMessage>("EncryptedMessage");
+
+  connect(app, SIGNAL(encryptedDatagram(QHostAddress,QByteArray,int)),
+          SLOT(onEncrypedDatagram(QHostAddress,QByteArray,int)),
+          Qt::QueuedConnection);
 
   connect(&check_expired_timer_, SIGNAL(timeout()), SLOT(check_expired()),
           Qt::QueuedConnection);
@@ -305,4 +331,76 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
     }
 
   return msg;
+}
+
+void
+EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
+                                            QByteArray datagram,
+                                            int uncompressed_size)
+{
+  Q_UNUSED(uncompressed_size);
+
+  if (datagram.size() < (int)sizeof(enc_msg_header))
+    {
+      qDebug("Invalid encryped datagram.");
+      return;
+    }
+
+  const enc_msg_header *h = (const enc_msg_header*)datagram.constData();
+  QUuid session_id = QUuid::fromRfc4122(QByteArray((const char*)h->session_id,
+                                                   sizeof(h->session_id)));
+  QUuid target_id = QUuid::fromRfc4122(QByteArray((const char*)h->target_id,
+                                                  sizeof(h->target_id)));
+
+  if (target_id != qApp->userUuid())
+    {
+      qDebug("Encrypted datagram has invalid target.");
+      return;
+    }
+
+  EncryptionSession *s = 0;
+  auto it = sessions_by_id.constFind(session_id);
+  if (sessions_by_id.constEnd() != it)
+    {
+      s = it.value();
+      s->target_host = host;
+    }
+
+  switch(h->type)
+    {
+    case SESSION_REQUEST:
+      {
+        if (datagram.size() != (sizeof(enc_msg_header) + sizeof(ses_req_data)))
+          {
+            qDebug("Invalid size of SESSION_REQUEST message!");
+            return;
+          }
+
+        if (0 != s)
+          {
+            qDebug("Attempt to create existing session!");
+            return;
+          }
+        const ses_req_data *d = (const ses_req_data*)(h + 1);
+        QUuid requester_uuid
+          = QUuid::fromRfc4122(QByteArray((const char*)d->requester_uuid,
+                                          sizeof(d->requester_uuid)));
+
+        s = new EncryptionSession(requester_uuid, host);
+        s->id = session_id;
+        s->key_created = true;
+        DiffieHellman::from_raw(s->p, d->p);
+        DiffieHellman::from_raw(s->q, d->q);
+        DiffieHellman::from_raw(s->A, d->A);
+        initiate_responce(s);
+      }
+      break;
+
+    case SESSION_CONFIRM:
+    case ENCRYPED_DATA:
+    case SESSION_DESTROYED:
+    default:
+      qDebug("Unknown or unsupported encrypted message type: 0x%02X", h->type);
+      return;
+    }
 }
