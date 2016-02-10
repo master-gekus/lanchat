@@ -1,6 +1,122 @@
 #include "app.h"
+#include "user_list_item.h"
+#include "message_composer.h"
+#include "simple_diffie_hellman.h"
+
+typedef SimpleDiffieHellman<quint32> DiffieHellman;
 
 #include "encrypted_message.h"
+
+// ////////////////////////////////////////////////////////////////////////////
+namespace
+{
+  struct EncryptionSession;
+  QMap<QUuid,EncryptionSession*> sessions_by_id;
+  QMap<QUuid,EncryptionSession*> sessions_by_target;
+
+  struct EncryptionSession
+  {
+    EncryptionSession(const QUuid& target, const QHostAddress& host) :
+      target_uuid(target),
+      target_host(host)
+    {
+      sessions_by_id.insert(id, this);
+      sessions_by_target.insert(target_uuid, this);
+    }
+
+    ~EncryptionSession()
+    {
+      sessions_by_id.remove(id);
+      sessions_by_target.remove(target_uuid);
+    }
+
+    QUuid id = QUuid::createUuid(), target_uuid;
+    QHostAddress target_host;
+    bool key_created = false;
+    DiffieHellman::KeyType  p, q, a, A, b, B, Key;
+    QList<EncryptedMessage> waiting_messages;
+  };
+
+  enum EncrypedMessageType
+  {
+    SESSION_REQUEST = 0x01,
+    SESSION_CONFIRM = 0x02,
+    ENCRYPED_DATA = 0x03,
+    SESSION_DESTROYED = 0x04,
+  };
+
+  /* All encryped payload has following header:
+   * +0 MessageType 1 bype
+   * +1 SessionUuid 16 bytes
+   * +17 TargetUserUuid 16 bytes
+   *
+   * futher payload depends of MessageType
+   */
+  #pragma pack(push, 1)
+  struct enc_msg_header
+  {
+    quint8 type;
+    quint8 session_id[16];
+    quint8 target_id[16];
+  };
+  #pragma pack(pop)
+  static_assert(33 == sizeof(enc_msg_header), "Invalid structure packing!");
+
+  quint8* precompose_data(QByteArray &data, EncryptionSession *session,
+                          EncrypedMessageType message_type,
+                          size_t addition_size)
+  {
+    data.resize(sizeof(enc_msg_header) + addition_size);
+    enc_msg_header *h = (enc_msg_header*)data.data();
+    h->type = message_type;
+    memmove(h->session_id, session->id.toRfc4122().constData(),
+            sizeof(h->session_id));
+    memmove(h->target_id, session->target_uuid.toRfc4122().constData(),
+            sizeof(h->target_id));
+
+    return (quint8*)(h + 1);
+  }
+
+  /* SESSION_REQUEST additional payload
+   * + 0 Requestor uuid
+   * + 16 p
+   * + 16 + KeySize q
+   * + 16 + KeySize*2 A = q^a mod p
+   */
+  #pragma pack(push, 1)
+  struct ses_req_data
+  {
+    quint8 requester_uuid[16];
+    quint8 p[DiffieHellman::KeySize];
+    quint8 q[DiffieHellman::KeySize];
+    quint8 A[DiffieHellman::KeySize];
+  };
+  #pragma pack(pop)
+
+  void initiate_session(EncryptionSession* session)
+  {
+    DiffieHellman::prepareRequest(session->p, session->q, session->a,
+                                  session->A);
+    QByteArray data;
+    ses_req_data* d = (ses_req_data*)precompose_data(data, session,
+                                                     SESSION_REQUEST,
+                                                     sizeof(ses_req_data));
+    memmove(d->requester_uuid, qApp->userUuid().toRfc4122().constData(),
+            sizeof(d->requester_uuid));
+
+    memmove(d->p, DiffieHellman::raw_data(session->p), sizeof(d->p));
+    memmove(d->q, DiffieHellman::raw_data(session->q), sizeof(d->q));
+    memmove(d->A, DiffieHellman::raw_data(session->A), sizeof(d->A));
+
+    qApp->sendDatagram(session->target_host,
+                       MessageComposer::composeEncrypted(data, 0));
+  }
+
+  void send_encryped_data(EncryptionSession* session, const QByteArray& data)
+  {
+    Q_ASSERT(false);
+  }
+}
 
 // ////////////////////////////////////////////////////////////////////////////
 class EncryptedMessagePrivate : public QSharedData
@@ -120,8 +236,39 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
 
   EncryptedMessage msg(data);
 
-  emit
-    sendingResult(msg, false, QStringLiteral("Not implemented now!"));
+  EncryptionSession *session = 0;
+
+  auto it = sessions_by_target.constFind(target);
+  if (sessions_by_target.constEnd() == it)
+    {
+      UserListItem *item = UserListItem::findItem(target);
+      if ((0 == item) || item->hostAddress().isNull())
+        {
+          emit
+            sendingResult(msg, false,
+                          QStringLiteral("Can not determine host address of recepient!"));
+          return msg;
+        }
+      session = new EncryptionSession(target, item->hostAddress());
+      initiate_session(session);
+    }
+  else
+    {
+      session = it.value();
+    }
+
+  Q_ASSERT(0 != session);
+
+  if (session->key_created)
+    {
+      send_encryped_data(session, msg.data());
+      emit
+        sendingResult(msg, true, QString());
+    }
+  else
+    {
+      session->waiting_messages.append(msg);
+    }
 
   return msg;
 }
