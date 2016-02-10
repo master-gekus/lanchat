@@ -21,7 +21,9 @@ SOURCES += \
   simple_diffie_hellman.cpp \
   settings_dialog.cpp \
   message_composer.cpp \
-  user_list_item.cpp
+  user_list_item.cpp \
+  encrypted_session.cpp \
+  encrypted_sessions_manager.cpp
 
 HEADERS += \
   main_window.h \
@@ -34,7 +36,9 @@ HEADERS += \
   simple_diffie_hellman.h \
   settings_dialog.h \
   message_composer.h \
-  user_list_item.h
+  user_list_item.h \
+  encrypted_session.h \
+  encrypted_sessions_manager.h
 
 FORMS += \
   main_window.ui \
