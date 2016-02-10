@@ -139,9 +139,48 @@ namespace
                        MessageComposer::composeEncrypted(data, 0));
   }
 
-  void send_encryped_data(EncryptionSession* session, const QByteArray& data)
+  /* ENCRYPED_DATA additional payload
+   * + 0 4 bytes CRC32 of non-encrypted data
+   */
+  #pragma pack(push, 1)
+  struct ses_enc_data
   {
-    Q_ASSERT(false);
+    quint32 crc32;
+    quint8 data[];
+  };
+  #pragma pack(pop)
+  static_assert(sizeof(quint32) == sizeof(ses_enc_data), "Invalid structure packing!");
+
+  void enc_dec_buf(void *buf, size_t cb_buf, const void* key)
+  {
+    quint8* b = (quint8*)buf;
+    const quint8* k = (const quint8*)key;
+    for (size_t i = 0; i < cb_buf; i++)
+      *(b++) ^= k[i % DiffieHellman::KeySize];
+  }
+
+  void send_encryped_data(EncryptionSession* s, const QByteArray& msg)
+  {
+    int uncompressed_size = 0;
+    QByteArray to_encrypt(msg);
+    QByteArray compressed = qCompress(msg, 9);
+    if ((compressed.size() - 4) < msg.size())
+      {
+        uncompressed_size = msg.size();
+        to_encrypt = compressed.mid(4);
+      }
+
+    QByteArray data;
+    ses_enc_data* d = (ses_enc_data*)precompose_data(data, s,
+                                                     ENCRYPED_DATA,
+                                                     sizeof(ses_enc_data)
+                                                     + to_encrypt.size());
+    d->crc32 = MessageComposer::crc32(msg);
+    memmove(d->data, to_encrypt.constData(), to_encrypt.size());
+    enc_dec_buf(d->data, to_encrypt.size(), DiffieHellman::raw_data(s->Key));
+    qApp->sendDatagram(s->target_host,
+                       MessageComposer::composeEncrypted(data,
+                                                         uncompressed_size));
   }
 }
 
@@ -397,6 +436,34 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
       break;
 
     case SESSION_CONFIRM:
+      {
+        if (datagram.size() != (sizeof(enc_msg_header) + sizeof(ses_resp_data)))
+          {
+            qDebug("Invalid size of SESSION_CONFIRM message!");
+            return;
+          }
+
+        if (0 == s)
+          {
+            qDebug("Attempt to confirm unexisting session!");
+            return;
+          }
+
+        const ses_resp_data *d = (const ses_resp_data*)(h + 1);
+        DiffieHellman::from_raw(s->B, d->B);
+        DiffieHellman::calculateKey(s->p, s->a, s->B, s->Key);
+        s->key_created = true;
+
+        for (const EncryptedMessage& msg : s->waiting_messages)
+          {
+            send_encryped_data(s, msg.data());
+            emit
+              sendingResult(msg, true, QString());
+          }
+        s->waiting_messages.clear();
+      }
+      break;
+
     case ENCRYPED_DATA:
     case SESSION_DESTROYED:
     default:
