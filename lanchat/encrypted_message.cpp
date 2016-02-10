@@ -176,7 +176,7 @@ namespace
       *(b++) ^= k[i % DiffieHellman::KeySize];
   }
 
-  void send_encryped_data(EncryptionSession* s, const QByteArray& msg)
+  void send_encrypted_data(EncryptionSession* s, const QByteArray& msg)
   {
     int uncompressed_size = 0;
     QByteArray to_encrypt(msg);
@@ -199,6 +199,37 @@ namespace
                        MessageComposer::composeEncrypted(data,
                                                          uncompressed_size));
   }
+
+  bool decrypt_data(QByteArray& result, EncryptionSession* s,
+                    const ses_enc_data *enc_data, int data_size,
+                    int uncompressed_size)
+  {
+    if (0 < uncompressed_size)
+      {
+        QByteArray compressed;
+        compressed.resize(data_size + sizeof(quint32));
+        quint32* d = (quint32*)compressed.data();
+        *(d++) = uncompressed_size;
+        memmove(d, enc_data->data, data_size);
+        enc_dec_buf(d, data_size, DiffieHellman::raw_data(s->Key));
+        result = qUncompress(compressed);
+      }
+    else
+      {
+        result.resize(data_size);
+        memmove(result.data(), enc_data->data, data_size);
+        enc_dec_buf(result.data(), data_size, DiffieHellman::raw_data(s->Key));
+      }
+
+    if (MessageComposer::crc32(result) != enc_data->crc32)
+      {
+        qDebug("Invalid CRC32 inside encrypted data.");
+        return false;
+      }
+
+    return false;
+  }
+
 }
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -377,7 +408,7 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
 
   if (session->key_created)
     {
-      send_encryped_data(session, msg.data());
+      send_encrypted_data(session, msg.data());
       emit
         sendingResult(msg, true, QString());
     }
@@ -471,7 +502,7 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
 
         for (const EncryptedMessage& msg : s->waiting_messages)
           {
-            send_encryped_data(s, msg.data());
+            send_encrypted_data(s, msg.data());
             emit
               sendingResult(msg, true, QString());
           }
@@ -480,6 +511,30 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
       break;
 
     case ENCRYPED_DATA:
+      {
+        if (datagram.size() < (int)(sizeof(enc_msg_header)
+                                    + sizeof(ses_enc_data)))
+          {
+            qDebug("Invalid size of ENCRYPED_DATA message!");
+            return;
+          }
+
+        if (0 == s)
+          {
+            qDebug("Attempt to confirm unexisting session!");
+            return;
+          }
+
+        QByteArray result;
+        if (!decrypt_data(result, s, (const ses_enc_data*)(h + 1),
+                          datagram.size() - sizeof(enc_msg_header)
+                          - sizeof(ses_enc_data),
+                          uncompressed_size))
+          return;
+
+      }
+      break;
+
     case SESSION_DESTROYED:
     default:
       qDebug("Unknown or unsupported encrypted message type: 0x%02X", h->type);
