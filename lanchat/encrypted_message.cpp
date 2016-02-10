@@ -72,7 +72,7 @@ namespace
                           EncrypedMessageType message_type,
                           size_t addition_size)
   {
-    data.resize(sizeof(enc_msg_header) + addition_size);
+    data.resize((int)(sizeof(enc_msg_header) + addition_size));
     enc_msg_header *h = (enc_msg_header*)data.data();
     h->type = message_type;
     memmove(h->session_id, session->id.toRfc4122().constData(),
@@ -143,11 +143,17 @@ namespace
    * + 0 4 bytes CRC32 of non-encrypted data
    */
   #pragma pack(push, 1)
+  #ifdef Q_CC_MSVC
+    #pragma warning(disable: 4200) // nonstandard extension used : zero-sized array in struct/union
+  #endif
   struct ses_enc_data
   {
     quint32 crc32;
     quint8 data[];
   };
+  #ifdef Q_CC_MSVC
+    #pragma warning(default: 4200)
+  #endif
   #pragma pack(pop)
   static_assert(sizeof(quint32) == sizeof(ses_enc_data), "Invalid structure packing!");
 
