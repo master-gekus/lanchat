@@ -8,6 +8,7 @@
 #include "GJson.h"
 
 #include "app.h"
+#include "encrypted_message.h"
 
 class LanChatAppPrivate : public QObject
 {
@@ -29,6 +30,8 @@ private:
   QUdpSocket* socket_;
 
   QTimer notify_presence_timer_;
+
+  EncryptedMessageManager emm_;
 
 private:
   void setExposedName(QString exposed_name);

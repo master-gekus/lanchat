@@ -1,3 +1,5 @@
+#include "app.h"
+
 #include "encrypted_message.h"
 
 // ////////////////////////////////////////////////////////////////////////////
@@ -85,25 +87,29 @@ EncryptedMessage::data() const
 // ////////////////////////////////////////////////////////////////////////////
 namespace
 {
-  EncryptedMessageManager manager;
+  EncryptedMessageManager *manager = 0;
 }
 
-EncryptedMessageManager::EncryptedMessageManager()
+EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
 {
-  Q_ASSERT(this == &manager);
+  Q_UNUSED(app);
+
+  Q_ASSERT(0 == manager);
+  manager = this;
 
   qRegisterMetaType<EncryptedMessage>("EncryptedMessage");
 }
 
 EncryptedMessageManager::~EncryptedMessageManager()
 {
-  Q_ASSERT(this == &manager);
+  Q_ASSERT(this == manager);
+  manager = 0;
 }
 
 EncryptedMessageManager*
 EncryptedMessageManager::instance()
 {
-  return &manager;
+  return manager;
 }
 
 EncryptedMessage

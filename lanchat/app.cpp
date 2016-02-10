@@ -81,7 +81,8 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   initialized_(false),
   error_string_(QStringLiteral("No error.")),
   socket_(new QUdpSocket()),
-  notify_presence_timer_(this)
+  notify_presence_timer_(this),
+  emm_(owner)
 {
   qRegisterMetaType<QHostAddress>("QHostAddress");
 

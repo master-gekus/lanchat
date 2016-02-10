@@ -6,6 +6,7 @@
 #include <QUuid>
 
 class EncryptedMessagePrivate;
+class LanChatApp;
 
 /**
  * @brief The EncryptedMessage class
@@ -42,7 +43,7 @@ class EncryptedMessageManager : public QObject
   Q_OBJECT
 
 public:
-  EncryptedMessageManager();
+  explicit EncryptedMessageManager(LanChatApp *app);
   ~EncryptedMessageManager();
 
 public:
