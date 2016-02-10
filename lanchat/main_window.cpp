@@ -1,7 +1,11 @@
+#include <QMessageBox>
+
 #include "app.h"
 #include "about_box.h"
 #include "settings_dialog.h"
 #include "user_list_item.h"
+
+#include "send_message_dialog.h"
 
 #include "main_window.h"
 #include "ui_main_window.h"
@@ -56,6 +60,11 @@ MainWindow::MainWindow(QWidget *parent) :
           Qt::QueuedConnection);
   connect(&check_inactivity_timer_, SIGNAL(timeout()), SLOT(checkInactivity()),
           Qt::QueuedConnection);
+  connect(gEmm, SIGNAL(sendingResult(EncryptedMessage,bool,QString)),
+          SLOT(onSendingResult(EncryptedMessage,bool,QString)),
+          Qt::QueuedConnection);
+  connect(gEmm, SIGNAL(messageReceived(QUuid,QByteArray)),
+          SLOT(onMessageReceived(QUuid,QByteArray)), Qt::QueuedConnection);
 
   check_inactivity_timer_.start(1000);
 }
@@ -75,6 +84,50 @@ void
 MainWindow::on_actionSettings_triggered()
 {
   SettingsDialog(this).exec();
+}
+
+void
+MainWindow::on_actionSendMessage_triggered()
+{
+  auto items = ui->listUsers->selectedItems();
+  UserListItem *item = (1 != items.size()) ? 0
+                       : dynamic_cast<UserListItem*>(items.first());
+  if (0 == item)
+    return;
+
+  SendMessageDialog smd(this);
+  if (QDialog::Accepted != smd.exec())
+    return;
+
+  gEmm->sendMessage(item->uuid(), smd.messageText());
+}
+
+void
+MainWindow::onSendingResult(EncryptedMessage msg, bool is_ok,
+                            QString error_string)
+{
+  if (is_ok)
+    {
+      QMessageBox::information(this, windowTitle(),
+        QStringLiteral("Message with id #%1 successfully sent.").arg(msg.id()));
+    }
+  else
+    {
+      QMessageBox::critical(this, windowTitle(),
+        QStringLiteral("Error sendig message with id #%1: %2").arg(msg.id())
+          .arg(error_string));
+    }
+}
+
+void
+MainWindow::onMessageReceived(QUuid sender_uuid, QByteArray msg)
+{
+  UserListItem *item = UserListItem::findItem(sender_uuid);
+
+  QMessageBox::information(this, QStringLiteral("Message received"),
+    QStringLiteral("<B>Sender:</B>&nbsp;%1<BR><B>Message:</B><BR>%2")
+      .arg((0 == item) ? sender_uuid.toString() : item->name(),
+           QString::fromUtf8(msg)));
 }
 
 void

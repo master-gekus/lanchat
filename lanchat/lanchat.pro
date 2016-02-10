@@ -22,7 +22,8 @@ SOURCES += \
   settings_dialog.cpp \
   message_composer.cpp \
   user_list_item.cpp \
-  encrypted_message.cpp
+  encrypted_message.cpp \
+  send_message_dialog.cpp
 
 HEADERS += \
   main_window.h \
@@ -37,7 +38,8 @@ HEADERS += \
   message_composer.h \
   user_list_item.h \
   encrypted_message.h \
-  encrypted_message_p.h
+  encrypted_message_p.h \
+  send_message_dialog.h
 
 FORMS += \
   main_window.ui \
@@ -45,7 +47,8 @@ FORMS += \
   chat_window.ui \
   chat_incoming_message.ui \
   chat_outgoing_message.ui \
-  settings_dialog.ui
+  settings_dialog.ui \
+  send_message_dialog.ui
 
 RESOURCES += \
   resources.qrc

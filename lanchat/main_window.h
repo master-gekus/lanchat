@@ -7,6 +7,8 @@
 #include <QUuid>
 #include <QTimer>
 
+#include "encrypted_message.h"
+
 namespace Ui {
   class MainWindow;
 }
@@ -30,10 +32,13 @@ private:
 private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
+  void on_actionSendMessage_triggered();
 
 private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void onUserIsOffLine(QUuid uuid);
+  void onSendingResult(EncryptedMessage msg, bool is_ok, QString error_string);
+  void onMessageReceived(QUuid sender_uuid, QByteArray msg);
 
   void checkInactivity();
 

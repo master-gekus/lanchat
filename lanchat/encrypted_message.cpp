@@ -8,7 +8,7 @@
 
 #include "encrypted_message_p.h"
 
-#define SESSION_CONFIRM_WAIT_TIME 5000
+#define SESSION_CONFIRM_WAIT_TIME 5000000
 
 typedef SimpleDiffieHellman<quint32> DiffieHellman;
 
