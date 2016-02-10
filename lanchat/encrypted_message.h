@@ -4,6 +4,7 @@
 #include <QExplicitlySharedDataPointer>
 #include <QObject>
 #include <QUuid>
+#include <QTimer>
 
 class EncryptedMessagePrivate;
 class LanChatApp;
@@ -46,6 +47,9 @@ public:
   explicit EncryptedMessageManager(LanChatApp *app);
   ~EncryptedMessageManager();
 
+private:
+  QTimer check_expired_timer_;
+
 public:
   static EncryptedMessageManager* instance();
 
@@ -56,7 +60,7 @@ signals:
   void sendingResult(EncryptedMessage msg, bool is_ok, QString error_string);
 
 private slots:
-
+  void check_expired();
 };
 
 #define gEmm (EncryptedMessageManager::instance())

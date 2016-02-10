@@ -1,11 +1,16 @@
+#include <QDateTime>
+
 #include "app.h"
 #include "user_list_item.h"
 #include "message_composer.h"
 #include "simple_diffie_hellman.h"
 
+#include "encrypted_message.h"
+
+#define SESSION_CONFIRM_WAIT_TIME 5000
+
 typedef SimpleDiffieHellman<quint32> DiffieHellman;
 
-#include "encrypted_message.h"
 
 // ////////////////////////////////////////////////////////////////////////////
 namespace
@@ -34,6 +39,7 @@ namespace
     QHostAddress target_host;
     bool key_created = false;
     DiffieHellman::KeyType  p, q, a, A, b, B, Key;
+    quint64 request_send_time = QDateTime::currentMSecsSinceEpoch();
     QList<EncryptedMessage> waiting_messages;
   };
 
@@ -214,6 +220,10 @@ EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
   manager = this;
 
   qRegisterMetaType<EncryptedMessage>("EncryptedMessage");
+
+  connect(&check_expired_timer_, SIGNAL(timeout()), SLOT(check_expired()),
+          Qt::QueuedConnection);
+  check_expired_timer_.start(1000);
 }
 
 EncryptedMessageManager::~EncryptedMessageManager()
@@ -226,6 +236,30 @@ EncryptedMessageManager*
 EncryptedMessageManager::instance()
 {
   return manager;
+}
+
+void
+EncryptedMessageManager::check_expired()
+{
+  quint64 cur_time = QDateTime::currentMSecsSinceEpoch();
+  QList<EncryptionSession*> to_delete;
+  for (EncryptionSession *s : sessions_by_id)
+    {
+      if (s->key_created)
+        continue;
+      if ((cur_time - s->request_send_time) < SESSION_CONFIRM_WAIT_TIME)
+        continue;
+
+      for (EncryptedMessage const& msg : s->waiting_messages)
+        {
+          emit
+            sendingResult(msg, false,
+                          QStringLiteral("Session initiation timeout."));
+        }
+      to_delete.append(s);
+    }
+  for (EncryptionSession *s : to_delete)
+    delete s;
 }
 
 EncryptedMessage
@@ -246,7 +280,7 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
         {
           emit
             sendingResult(msg, false,
-                          QStringLiteral("Can not determine host address of recepient!"));
+                          QStringLiteral("Can not determine host address of recepient."));
           return msg;
         }
       session = new EncryptionSession(target, item->hostAddress());
