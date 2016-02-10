@@ -50,6 +50,27 @@ QByteArray MessageComposer::composeNonEncrypted(const GJson& msg)
   return message;
 }
 
+QByteArray
+MessageComposer::composeEncrypted(const QByteArray& data, size_t uncompressed_size)
+{
+  Q_ASSERT(uncompressed_size < 0x3FFF);
+
+  QByteArray message;
+  message.resize(data.size() + 6);
+  char *d = message.data();
+
+  *((quint16*)(d)) = 0x4000;
+  if (uncompressed_size > 0)
+    *((quint16*)(d)) |= (uncompressed_size & 0x3FFF) | 0x8000;
+
+  memmove(d + 2, data.constData(), data.size());
+
+  *((quint32*)(d + message.size() - sizeof(quint32)))
+    = crc32(d, message.size() - 4);
+
+  return message;
+}
+
 bool
 MessageComposer::isValid(const QByteArray& msg)
 {
@@ -70,7 +91,7 @@ MessageComposer::isValid(const QByteArray& msg)
 bool
 MessageComposer::isEncrypted(const QByteArray& msg)
 {
-  return (msg.size() > 1) && (0 != (msg[0] & 0x40));
+  return (msg.size() > 1) && (0 != (msg[1] & 0x40));
 }
 
 GJson

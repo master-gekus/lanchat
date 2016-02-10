@@ -29,11 +29,15 @@ namespace MessageComposer
  * Payload for non-encryped message is MSGPACK-ed Json (compressed or non),
  * depends of bit 14.
  *
- *
+ * For encryped message uncompressed size specified only for encryped part
+ * of payload (if this part is exist).
+ * For specifications of encryped data see comments in file
+ * encrypted_message.cpp
  */
 
   /* Composing */
   QByteArray composeNonEncrypted(const GJson& msg);
+  QByteArray composeEncrypted(const QByteArray& data, size_t uncompressed_size);
 
   /* Uncomposing */
   bool isValid(const QByteArray& msg);
