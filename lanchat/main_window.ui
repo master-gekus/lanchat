@@ -94,6 +94,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionSendMessage"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionAbout">
@@ -121,6 +122,11 @@
    </property>
    <property name="toolTip">
     <string>View and change global settings</string>
+   </property>
+  </action>
+  <action name="actionSendMessage">
+   <property name="text">
+    <string>Send Message</string>
    </property>
   </action>
  </widget>

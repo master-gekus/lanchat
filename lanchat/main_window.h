@@ -7,6 +7,8 @@
 #include <QUuid>
 #include <QTimer>
 
+#include "encrypted_sessions_manager.h"
+
 namespace Ui {
   class MainWindow;
 }
@@ -30,10 +32,14 @@ private:
 private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
+  void on_actionSendMessage_triggered();
 
 private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void onUserIsOffLine(QUuid uuid);
+
+  void onSendingResult(EncryptedSessionsManager::MessageID message_id,
+                       bool is_ok, QString error_string);
 
   void checkInactivity();
 

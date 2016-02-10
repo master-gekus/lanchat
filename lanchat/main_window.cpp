@@ -1,3 +1,5 @@
+#include <QMessageBox>
+
 #include "app.h"
 #include "about_box.h"
 #include "settings_dialog.h"
@@ -57,6 +59,11 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(&check_inactivity_timer_, SIGNAL(timeout()), SLOT(checkInactivity()),
           Qt::QueuedConnection);
 
+  connect(gEsm,
+          SIGNAL(sendingResult(EncryptedSessionsManager::MessageID,bool,QString)),
+          SLOT(onSendingResult(EncryptedSessionsManager::MessageID,bool,QString)),
+          Qt::QueuedConnection);
+
   check_inactivity_timer_.start(1000);
 }
 
@@ -75,6 +82,38 @@ void
 MainWindow::on_actionSettings_triggered()
 {
   SettingsDialog(this).exec();
+}
+
+void
+MainWindow::on_actionSendMessage_triggered()
+{
+  QList<QTreeWidgetItem*> items = ui->listUsers->selectedItems();
+  UserListItem *item = (1 != items.size()) ? 0
+                       : dynamic_cast<UserListItem*>(items.first());
+  if (0 == item)
+    return;
+
+  int id = (int)gEsm->sendEncrypted(item->uuid(), "This is a test message!");
+
+  QMessageBox::information(this, windowTitle(),
+    QStringLiteral("Message putted to queue with id #%1").arg(id));
+}
+
+void
+MainWindow::onSendingResult(EncryptedSessionsManager::MessageID message_id,
+                            bool is_ok, QString error_string)
+{
+  if (is_ok)
+    {
+      QMessageBox::information(this, windowTitle(),
+        QStringLiteral("Message with id #%1 sent.").arg(message_id));
+    }
+  else
+    {
+      QMessageBox::critical(this, windowTitle(),
+        QStringLiteral("Message with id #%1 NOT sent. Error: %2")
+          .arg(message_id).arg(error_string));
+    }
 }
 
 void

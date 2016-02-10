@@ -2,6 +2,18 @@
 #define ENCRYPTEDSESSIONSMANAGER_H
 
 #include <QObject>
+#include <QExplicitlySharedDataPointer>
+
+class EncryptedMessagePrivate;
+class EncryptedMessage
+{
+public:
+
+
+private:
+  QExplicitlySharedDataPointer<EncryptedMessagePrivate> d;
+};
+
 
 class EncryptedSessionsManager : public QObject
 {
