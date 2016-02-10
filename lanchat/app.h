@@ -34,6 +34,8 @@ public:
 
 signals:
   void nonEncryptedDatagram(QHostAddress host, GJson json);
+  void encryptedDatagram(QHostAddress host, QByteArray datagram,
+                         int uncompressed_size);
   void userIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void userIsOffLine(QUuid uuid);
 

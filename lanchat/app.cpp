@@ -262,7 +262,12 @@ LanChatAppPrivate::process_datagram(const QHostAddress& host,
 
   if (MessageComposer::isEncrypted(datagramm))
     {
-      qDebug("Encryption is not supported now!");
+      int uncompressed_size;
+      QByteArray uncomposed
+        = MessageComposer::uncomposeEncrypted(datagramm, uncompressed_size);
+
+      emit
+        owner_->encryptedDatagram(host, uncomposed, uncompressed_size);
     }
   else
     {
