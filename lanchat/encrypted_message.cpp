@@ -189,7 +189,7 @@ namespace
   #ifdef Q_CC_MSVC
     #pragma warning(disable: 4200) // nonstandard extension used : zero-sized array in struct/union
   #endif
-  struct ses_enc_data
+  struct enc_data
   {
     quint32 crc32;
     quint32 id;
@@ -220,9 +220,9 @@ namespace
       }
 
     QByteArray data;
-    ses_enc_data* d = (ses_enc_data*)precompose_data(data, s,
+    enc_data* d = (enc_data*)precompose_data(data, s,
                                                      ENCRYPED_DATA,
-                                                     sizeof(ses_enc_data)
+                                                     sizeof(enc_data)
                                                      + to_encrypt.size());
     d->crc32 = MessageComposer::crc32(msg.data());
     d->id = msg.id();
@@ -236,7 +236,7 @@ namespace
   }
 
   quint32 decrypt_data(QByteArray& result, EncryptionSession* s,
-                    const ses_enc_data *enc_data, int data_size,
+                    const enc_data *enc_data, int data_size,
                     int uncompressed_size)
   {
     if (0 < uncompressed_size)
@@ -263,6 +263,27 @@ namespace
       }
 
     return enc_data->id;
+  }
+
+  /* ENCRYPED_DATA_ACK additional payload
+   * + 0 4 bytes Message Id
+   */
+  #pragma pack(push, 1)
+  struct enc_data_ack
+  {
+    quint32 id;
+  };
+  #pragma pack(pop)
+
+  void send_enc_data_ack(EncryptionSession* s, quint32 msg_id)
+  {
+    QByteArray data;
+    enc_data_ack* d
+      = (enc_data_ack*)precompose_data(data, s, ENCRYPED_DATA_ACK,
+                                           sizeof(enc_data_ack));
+    d->id = msg_id;
+    qApp->sendDatagram(s->target_host,
+                       MessageComposer::composeEncrypted(data, 0));
   }
 
 }
@@ -437,10 +458,7 @@ EncryptedMessage
 EncryptedMessageManager::sendMessage(const QUuid& target,
                                      const QByteArray& data)
 {
-  Q_UNUSED(target);
-
   EncryptedMessage msg(data);
-
   EncryptionSession *session = 0;
 
   auto it = sessions_by_target.constFind(target);
@@ -480,9 +498,8 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
 namespace
 {
   void on_SESSION_REQUEST(int msg_size, EncryptionSession *s,
-                               const ses_req_data *d,
-                               const QUuid& session_id,
-                               const QHostAddress& host)
+                          const ses_req_data *d,
+                          const QUuid& session_id, const QHostAddress& host)
   {
     if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_req_data)))
       {
@@ -510,7 +527,7 @@ namespace
   }
 
   void on_SESSION_CONFIRM(int msg_size, EncryptionSession *s,
-                               const ses_resp_data *d)
+                          const ses_resp_data *d)
   {
     if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_resp_data)))
       {
@@ -542,10 +559,10 @@ namespace
   }
 
   void on_ENCRYPED_DATA(int msg_size, EncryptionSession *s,
-                             const ses_enc_data *d,
-                             int uncompressed_size)
+                        const enc_data *d,
+                        int uncompressed_size)
   {
-    if (msg_size < (int)(sizeof(enc_msg_header) + sizeof(ses_enc_data)))
+    if (msg_size < (int)(sizeof(enc_msg_header) + sizeof(enc_data)))
       {
         qDebug("Invalid size of ENCRYPED_DATA message!");
         return;
@@ -554,7 +571,7 @@ namespace
     QByteArray result;
     quint32 msg_id =  decrypt_data(result, s, d,
                                    msg_size - (sizeof(enc_msg_header)
-                                               + sizeof(ses_enc_data)),
+                                               + sizeof(enc_data)),
                                    uncompressed_size);
     if (0 == msg_id)
       {
@@ -564,8 +581,28 @@ namespace
     else
       {
         // Good decrypted
+        send_enc_data_ack(s, msg_id);
       }
-    return;
+  }
+
+  void on_ENCRYPED_DATA_ACK(int msg_size, EncryptionSession *s,
+                            const enc_data_ack *d)
+  {
+    if (msg_size < (int)(sizeof(enc_msg_header) + sizeof(enc_data_ack)))
+      {
+        qDebug("Invalid size of ENCRYPED_DATA_ACK message!");
+        return;
+      }
+
+    if (s->messages_to_confirm.contains(d->id))
+      {
+        EncryptedMessage msg = s->messages_to_confirm.take(d->id);
+        manager_private->emitSendingResult(msg);
+      }
+    else
+      {
+        qDebug("Confirmation of unexisting message!");
+      }
   }
 }
 
@@ -623,8 +660,12 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
       break;
 
     case ENCRYPED_DATA:
-      on_ENCRYPED_DATA(datagram.size(), s, (const ses_enc_data*)(h + 1),
+      on_ENCRYPED_DATA(datagram.size(), s, (const enc_data*)(h + 1),
                        uncompressed_size);
+      break;
+
+    case ENCRYPED_DATA_ACK:
+      on_ENCRYPED_DATA_ACK(datagram.size(), s, (const enc_data_ack*)(h + 1));
       break;
 
     default:
