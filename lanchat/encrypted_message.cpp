@@ -423,13 +423,92 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
   return msg;
 }
 
+namespace
+{
+  bool on_SESSION_REQUEST(int msg_size, EncryptionSession *s,
+                               const ses_req_data *d,
+                               const QUuid& session_id,
+                               const QHostAddress& host)
+  {
+    if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_req_data)))
+      {
+        qDebug("Invalid size of SESSION_REQUEST message!");
+        return false;
+      }
+
+    if (0 != s)
+      {
+        qDebug("Attempt to create existing session!");
+        // TODO: Need to remove session and send notification
+        return false;
+      }
+
+    // TODO: Need to check existing session to same user!
+
+
+    QUuid requester_uuid
+      = QUuid::fromRfc4122(QByteArray((const char*)d->requester_uuid,
+                                      sizeof(d->requester_uuid)));
+
+    s = new EncryptionSession(session_id, requester_uuid, host);
+    DiffieHellman::from_raw(s->p, d->p);
+    DiffieHellman::from_raw(s->q, d->q);
+    DiffieHellman::from_raw(s->A, d->A);
+    initiate_responce(s);
+
+    return true;
+  }
+
+  bool on_SESSION_CONFIRM(int msg_size, EncryptionSession *s,
+                               const ses_resp_data *d)
+  {
+    if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_resp_data)))
+      {
+        qDebug("Invalid size of SESSION_CONFIRM message!");
+        return false;
+      }
+
+    DiffieHellman::from_raw(s->B, d->B);
+    DiffieHellman::calculateKey(s->p, s->a, s->B, s->Key);
+    s->key_created = true;
+
+    return true;
+  }
+
+  bool on_ENCRYPED_DATA(int msg_size, EncryptionSession *s,
+                             const ses_enc_data *d,
+                             int uncompressed_size)
+  {
+    if (msg_size < (int)(sizeof(enc_msg_header) + sizeof(ses_enc_data)))
+      {
+        qDebug("Invalid size of ENCRYPED_DATA message!");
+        return false;
+      }
+
+    QByteArray result;
+    quint32 msg_id =  decrypt_data(result, s, d,
+                                   msg_size - (sizeof(enc_msg_header)
+                                               + sizeof(ses_enc_data)),
+                                   uncompressed_size);
+    if (0 == msg_id)
+      {
+        // Bad decrypted
+        return false;
+      }
+    else
+      {
+        // Good decrypted
+      }
+    return true;
+  }
+}
+
+
 void
 EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
                                             QByteArray datagram,
                                             int uncompressed_size)
 {
-  Q_UNUSED(uncompressed_size);
-
   if (datagram.size() < (int)sizeof(enc_msg_header))
     {
       qDebug("Invalid encryped datagram.");
@@ -455,97 +534,39 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
       s = it.value();
       s->target_host = host;
     }
+  else if (SESSION_REQUEST != h->type)
+    {
+      qDebug("Access to unexisting session!");
+      // TODO: Need to send notification!
+      return;
+    }
 
   switch(h->type)
     {
     case SESSION_REQUEST:
-      {
-        if (datagram.size() != (sizeof(enc_msg_header) + sizeof(ses_req_data)))
-          {
-            qDebug("Invalid size of SESSION_REQUEST message!");
-            return;
-          }
-
-        if (0 != s)
-          {
-            qDebug("Attempt to create existing session!");
-            return;
-          }
-        const ses_req_data *d = (const ses_req_data*)(h + 1);
-        QUuid requester_uuid
-          = QUuid::fromRfc4122(QByteArray((const char*)d->requester_uuid,
-                                          sizeof(d->requester_uuid)));
-
-        s = new EncryptionSession(session_id, requester_uuid, host);
-        DiffieHellman::from_raw(s->p, d->p);
-        DiffieHellman::from_raw(s->q, d->q);
-        DiffieHellman::from_raw(s->A, d->A);
-        initiate_responce(s);
-      }
+      on_SESSION_REQUEST(datagram.size(), s, (const ses_req_data*)(h + 1),
+                              session_id, host);
       break;
 
     case SESSION_CONFIRM:
-      {
-        if (datagram.size() != (sizeof(enc_msg_header) + sizeof(ses_resp_data)))
-          {
-            qDebug("Invalid size of SESSION_CONFIRM message!");
-            return;
-          }
-
-        if (0 == s)
-          {
-            qDebug("Attempt to confirm unexisting session!");
-            return;
-          }
-
-        const ses_resp_data *d = (const ses_resp_data*)(h + 1);
-        DiffieHellman::from_raw(s->B, d->B);
-        DiffieHellman::calculateKey(s->p, s->a, s->B, s->Key);
-        s->key_created = true;
-
-        for (const EncryptedMessage& msg : s->waiting_messages)
-          {
-            send_encrypted_data(s, msg);
-            emit
-              sendingResult(msg, true, QString());
-          }
-        s->waiting_messages.clear();
-      }
+      if (on_SESSION_CONFIRM(datagram.size(), s,
+                                  (const ses_resp_data*)(h + 1)))
+        {
+          for (const EncryptedMessage& msg : s->waiting_messages)
+            {
+              send_encrypted_data(s, msg);
+              emit
+                sendingResult(msg, true, QString());
+            }
+          s->waiting_messages.clear();
+        }
       break;
 
     case ENCRYPED_DATA:
-      {
-        if (datagram.size() < (int)(sizeof(enc_msg_header)
-                                    + sizeof(ses_enc_data)))
-          {
-            qDebug("Invalid size of ENCRYPED_DATA message!");
-            return;
-          }
-
-        if (0 == s)
-          {
-            qDebug("Attempt to confirm unexisting session!");
-            return;
-          }
-
-        QByteArray result;
-        quint32 msg_id =  decrypt_data(result, s, (const ses_enc_data*)(h + 1),
-                                       datagram.size() - sizeof(enc_msg_header)
-                                       - sizeof(ses_enc_data),
-                                       uncompressed_size);
-        if (0 == msg_id)
-          {
-            // Bad decrypted
-            return;
-          }
-        else
-          {
-            // Good decrypted
-          }
-      }
+      on_ENCRYPED_DATA(datagram.size(), s, (const ses_enc_data*)(h + 1),
+                            uncompressed_size);
       break;
 
-//    case SESSION_DESTROYED:
     default:
       qDebug("Unknown or unsupported encrypted message type: 0x%02X", h->type);
       return;
