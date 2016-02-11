@@ -36,7 +36,8 @@ HEADERS += \
   settings_dialog.h \
   message_composer.h \
   user_list_item.h \
-  encrypted_message.h
+  encrypted_message.h \
+  encrypted_message_p.h
 
 FORMS += \
   main_window.ui \

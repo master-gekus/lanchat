@@ -5,7 +5,7 @@
 #include "message_composer.h"
 #include "simple_diffie_hellman.h"
 
-#include "encrypted_message.h"
+#include "encrypted_message_p.h"
 
 #define SESSION_CONFIRM_WAIT_TIME 5000
 
@@ -15,15 +15,27 @@ typedef SimpleDiffieHellman<quint32> DiffieHellman;
 // ////////////////////////////////////////////////////////////////////////////
 namespace
 {
+  EncryptedMessageManager *manager = 0;
+  EncryptedMessageManagerPrivate *manager_private = 0;
+
   struct EncryptionSession;
   QMap<QUuid,EncryptionSession*> sessions_by_id;
   QMap<QUuid,EncryptionSession*> sessions_by_target;
 
   struct EncryptionSession
   {
+    enum State
+    {
+      WaitForConfirm,
+      WaitForAck,     // After this state we can accept messages
+      Active,
+    };
+
     EncryptionSession(const QUuid& target, const QHostAddress& host) :
+      id(QUuid::createUuid()),
       target_uuid(target),
-      target_host(host)
+      target_host(host),
+      state(WaitForConfirm)
     {
       sessions_by_id.insert(id, this);
       sessions_by_target.insert(target_uuid, this);
@@ -34,7 +46,7 @@ namespace
       id(session_id),
       target_uuid(target),
       target_host(host),
-      key_created(true)
+      state(WaitForAck)
     {
       sessions_by_id.insert(id, this);
       sessions_by_target.insert(target_uuid, this);
@@ -46,20 +58,29 @@ namespace
       sessions_by_target.remove(target_uuid);
     }
 
-    QUuid id = QUuid::createUuid(), target_uuid;
+    QUuid id, target_uuid;
     QHostAddress target_host;
-    bool key_created = false;
+    State state;
+    quint64 last_activity_time = QDateTime::currentMSecsSinceEpoch();
+    QList<EncryptedMessage> messages_to_send;
+    QMap<int,EncryptedMessage> messages_to_confirm;
+
     DiffieHellman::KeyType  p, q, a, A, b, B, Key;
-    quint64 request_send_time = QDateTime::currentMSecsSinceEpoch();
-    QList<EncryptedMessage> waiting_messages;
+
+  private:
+    EncryptionSession() = delete;
+    Q_DISABLE_COPY(EncryptionSession)
   };
 
   enum EncrypedMessageType
   {
     SESSION_REQUEST = 0x01,
     SESSION_CONFIRM = 0x02,
-    ENCRYPED_DATA = 0x03,
-    SESSION_DESTROYED = 0x04,
+    SESSION_NOT_FOUND = 0x03,
+    SESSION_DECLINED = 0x04,
+
+    ENCRYPED_DATA = 0x11,
+    ENCRYPED_DATA_ACK = 0x12,
   };
 
   /* All encryped payload has following header:
@@ -92,6 +113,15 @@ namespace
             sizeof(h->target_id));
 
     return (quint8*)(h + 1);
+  }
+
+  void send_simple_session_message(EncryptionSession* s,
+                                   EncrypedMessageType message_type)
+  {
+    QByteArray data;
+    precompose_data(data, s, message_type, 0);
+    qApp->sendDatagram(s->target_host,
+                       MessageComposer::composeEncrypted(data, 0));
   }
 
   /* SESSION_REQUEST additional payload
@@ -177,7 +207,7 @@ namespace
       *(b++) ^= k[i % DiffieHellman::KeySize];
   }
 
-  void send_encrypted_data(EncryptionSession* s, const EncryptedMessage& msg)
+  void send_encrypted_message(EncryptionSession* s, const EncryptedMessage& msg)
   {
     int uncompressed_size = 0;
     QByteArray to_encrypt(msg.data());
@@ -201,6 +231,7 @@ namespace
     qApp->sendDatagram(s->target_host,
                        MessageComposer::composeEncrypted(data,
                                                          uncompressed_size));
+    s->messages_to_confirm.insert(msg.id(), msg);
   }
 
   quint32 decrypt_data(QByteArray& result, EncryptionSession* s,
@@ -318,21 +349,10 @@ EncryptedMessage::data() const
 }
 
 // ////////////////////////////////////////////////////////////////////////////
-namespace
+EncryptedMessageManagerPrivate::EncryptedMessageManagerPrivate(EncryptedMessageManager *owner,
+                                                               LanChatApp *app) :
+  owner_(owner)
 {
-  EncryptedMessageManager *manager = 0;
-}
-
-EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
-{
-  Q_UNUSED(app);
-
-  Q_ASSERT(0 == manager);
-  manager = this;
-
-  qRegisterMetaType<QHostAddress>("QHostAddress");
-  qRegisterMetaType<EncryptedMessage>("EncryptedMessage");
-
   connect(app, SIGNAL(encryptedDatagram(QHostAddress,QByteArray,int)),
           SLOT(onEncrypedDatagram(QHostAddress,QByteArray,int)),
           Qt::QueuedConnection);
@@ -342,10 +362,44 @@ EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
   check_expired_timer_.start(1000);
 }
 
+EncryptedMessageManagerPrivate::~EncryptedMessageManagerPrivate()
+{
+}
+
+void
+EncryptedMessageManagerPrivate::emitSendingResult(const EncryptedMessage& msg,
+                                                  bool is_ok,
+                                                  const QString& error_string)
+{
+  emit
+    owner_->sendingResult(msg, is_ok, error_string);
+}
+
+void
+EncryptedMessageManagerPrivate::emitSendingResult(const EncryptedMessage& msg)
+{
+  emit
+    owner_->sendingResult(msg, true, QString());
+}
+
+// ////////////////////////////////////////////////////////////////////////////
+EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
+{
+  Q_ASSERT(0 == manager);
+  manager = this;
+
+  qRegisterMetaType<QHostAddress>("QHostAddress");
+  qRegisterMetaType<EncryptedMessage>("EncryptedMessage");
+
+  manager_private = new EncryptedMessageManagerPrivate(this, app);
+}
+
 EncryptedMessageManager::~EncryptedMessageManager()
 {
   Q_ASSERT(this == manager);
   manager = 0;
+  delete manager_private;
+  manager_private = 0;
 }
 
 EncryptedMessageManager*
@@ -355,22 +409,22 @@ EncryptedMessageManager::instance()
 }
 
 void
-EncryptedMessageManager::check_expired()
+EncryptedMessageManagerPrivate::check_expired()
 {
   quint64 cur_time = QDateTime::currentMSecsSinceEpoch();
   QList<EncryptionSession*> to_delete;
   for (EncryptionSession *s : sessions_by_id)
     {
-      if (s->key_created)
-        continue;
-      if ((cur_time - s->request_send_time) < SESSION_CONFIRM_WAIT_TIME)
+      if (s->state == EncryptionSession::Active)
         continue;
 
-      for (EncryptedMessage const& msg : s->waiting_messages)
+      if ((cur_time - s->last_activity_time) < SESSION_CONFIRM_WAIT_TIME)
+        continue;
+
+      for (EncryptedMessage const& msg : s->messages_to_send)
         {
-          emit
-            sendingResult(msg, false,
-                          QStringLiteral("Session initiation timeout."));
+          emitSendingResult(msg, false,
+                            QStringLiteral("Session initiation timeout."));
         }
       to_delete.append(s);
     }
@@ -409,15 +463,16 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
 
   Q_ASSERT(0 != session);
 
-  if (session->key_created)
+  switch(session->state)
     {
-      send_encrypted_data(session, msg);
+    case EncryptionSession::Active:
+      send_encrypted_message(session, msg);
       emit
         sendingResult(msg, true, QString());
-    }
-  else
-    {
-      session->waiting_messages.append(msg);
+      break;
+
+    default:
+      session->messages_to_send.append(msg);
     }
 
   return msg;
@@ -439,7 +494,7 @@ namespace
     if (0 != s)
       {
         qDebug("Attempt to create existing session!");
-        // TODO: Need to remove session and send notification
+        send_simple_session_message(s, SESSION_DECLINED);
         return false;
       }
 
@@ -470,7 +525,7 @@ namespace
 
     DiffieHellman::from_raw(s->B, d->B);
     DiffieHellman::calculateKey(s->p, s->a, s->B, s->Key);
-    s->key_created = true;
+    s->state = EncryptionSession::WaitForAck;
 
     return true;
   }
@@ -505,9 +560,9 @@ namespace
 
 
 void
-EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
-                                            QByteArray datagram,
-                                            int uncompressed_size)
+EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
+                                                   QByteArray datagram,
+                                                   int uncompressed_size)
 {
   if (datagram.size() < (int)sizeof(enc_msg_header))
     {
@@ -552,13 +607,12 @@ EncryptedMessageManager::onEncrypedDatagram(QHostAddress host,
       if (on_SESSION_CONFIRM(datagram.size(), s,
                                   (const ses_resp_data*)(h + 1)))
         {
-          for (const EncryptedMessage& msg : s->waiting_messages)
+          for (const EncryptedMessage& msg : s->messages_to_send)
             {
-              send_encrypted_data(s, msg);
-              emit
-                sendingResult(msg, true, QString());
+              send_encrypted_message(s, msg);
+              manager_private->emitSendingResult(msg);
             }
-          s->waiting_messages.clear();
+          s->messages_to_send.clear();
         }
       break;
 

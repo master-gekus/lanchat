@@ -1,14 +1,12 @@
 #ifndef ENCRYPEDMESSAGE_H
 #define ENCRYPEDMESSAGE_H
 
-#include <QExplicitlySharedDataPointer>
 #include <QObject>
 #include <QUuid>
-#include <QTimer>
-#include <QHostAddress>
+#include <QExplicitlySharedDataPointer>
 
-class EncryptedMessagePrivate;
 class LanChatApp;
+class EncryptedMessagePrivate;
 
 /**
  * @brief The EncryptedMessage class
@@ -49,7 +47,7 @@ public:
   ~EncryptedMessageManager();
 
 private:
-  QTimer check_expired_timer_;
+  Q_DISABLE_COPY(EncryptedMessageManager)
 
 public:
   static EncryptedMessageManager* instance();
@@ -60,10 +58,6 @@ public:
 signals:
   void sendingResult(EncryptedMessage msg, bool is_ok, QString error_string);
 
-private slots:
-  void check_expired();
-  void onEncrypedDatagram(QHostAddress host, QByteArray datagram,
-                          int uncompressed_size);
 };
 
 #define gEmm (EncryptedMessageManager::instance())
