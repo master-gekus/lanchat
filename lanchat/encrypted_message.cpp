@@ -76,8 +76,9 @@ namespace
   {
     SESSION_REQUEST = 0x01,
     SESSION_CONFIRM = 0x02,
-    SESSION_NOT_FOUND = 0x03,
-    SESSION_DECLINED = 0x04,
+    SESSION_ACK = 0x03,
+    SESSION_NOT_FOUND = 0x04,
+    SESSION_DECLINED = 0x05,
 
     ENCRYPED_DATA = 0x11,
     ENCRYPED_DATA_ACK = 0x12,
@@ -140,7 +141,7 @@ namespace
   };
   #pragma pack(pop)
 
-  void initiate_session(EncryptionSession* s)
+  void send_session_request(EncryptionSession* s)
   {
     DiffieHellman::prepareRequest(s->p, s->q, s->a, s->A);
     QByteArray data;
@@ -168,7 +169,7 @@ namespace
   };
   #pragma pack(pop)
 
-  void initiate_responce(EncryptionSession* s)
+  void send_session_confirm(EncryptionSession* s)
   {
     DiffieHellman::prepareResponse(s->p, s->q, s->A, s->b, s->B, s->Key);
     QByteArray data;
@@ -454,7 +455,7 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
           return msg;
         }
       session = new EncryptionSession(target, item->hostAddress());
-      initiate_session(session);
+      send_session_request(session);
     }
   else
     {
@@ -467,8 +468,6 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
     {
     case EncryptionSession::Active:
       send_encrypted_message(session, msg);
-      emit
-        sendingResult(msg, true, QString());
       break;
 
     default:
@@ -480,7 +479,7 @@ EncryptedMessageManager::sendMessage(const QUuid& target,
 
 namespace
 {
-  bool on_SESSION_REQUEST(int msg_size, EncryptionSession *s,
+  void on_SESSION_REQUEST(int msg_size, EncryptionSession *s,
                                const ses_req_data *d,
                                const QUuid& session_id,
                                const QHostAddress& host)
@@ -488,18 +487,15 @@ namespace
     if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_req_data)))
       {
         qDebug("Invalid size of SESSION_REQUEST message!");
-        return false;
+        return;
       }
 
     if (0 != s)
       {
         qDebug("Attempt to create existing session!");
         send_simple_session_message(s, SESSION_DECLINED);
-        return false;
+        return;
       }
-
-    // TODO: Need to check existing session to same user!
-
 
     QUuid requester_uuid
       = QUuid::fromRfc4122(QByteArray((const char*)d->requester_uuid,
@@ -509,35 +505,50 @@ namespace
     DiffieHellman::from_raw(s->p, d->p);
     DiffieHellman::from_raw(s->q, d->q);
     DiffieHellman::from_raw(s->A, d->A);
-    initiate_responce(s);
-
-    return true;
+    s->state = EncryptionSession::WaitForAck;
+    send_session_confirm(s);
   }
 
-  bool on_SESSION_CONFIRM(int msg_size, EncryptionSession *s,
+  void on_SESSION_CONFIRM(int msg_size, EncryptionSession *s,
                                const ses_resp_data *d)
   {
     if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_resp_data)))
       {
         qDebug("Invalid size of SESSION_CONFIRM message!");
-        return false;
+        return;
       }
 
     DiffieHellman::from_raw(s->B, d->B);
     DiffieHellman::calculateKey(s->p, s->a, s->B, s->Key);
-    s->state = EncryptionSession::WaitForAck;
+    s->state = EncryptionSession::Active;
+    send_simple_session_message(s, SESSION_ACK);
 
-    return true;
+    while (!s->messages_to_send.isEmpty())
+      send_encrypted_message(s, s->messages_to_send.takeFirst());
   }
 
-  bool on_ENCRYPED_DATA(int msg_size, EncryptionSession *s,
+  void on_SESSION_ACK(int msg_size, EncryptionSession *s)
+  {
+    if (msg_size != sizeof(enc_msg_header))
+      {
+        qDebug("Invalid size of SESSION_CONFIRM message!");
+        return;
+      }
+
+    s->state = EncryptionSession::Active;
+
+    while (!s->messages_to_send.isEmpty())
+      send_encrypted_message(s, s->messages_to_send.takeFirst());
+  }
+
+  void on_ENCRYPED_DATA(int msg_size, EncryptionSession *s,
                              const ses_enc_data *d,
                              int uncompressed_size)
   {
     if (msg_size < (int)(sizeof(enc_msg_header) + sizeof(ses_enc_data)))
       {
         qDebug("Invalid size of ENCRYPED_DATA message!");
-        return false;
+        return;
       }
 
     QByteArray result;
@@ -548,16 +559,15 @@ namespace
     if (0 == msg_id)
       {
         // Bad decrypted
-        return false;
+        return;
       }
     else
       {
         // Good decrypted
       }
-    return true;
+    return;
   }
 }
-
 
 void
 EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
@@ -588,6 +598,7 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
     {
       s = it.value();
       s->target_host = host;
+      s->last_activity_time = QDateTime::currentMSecsSinceEpoch();
     }
   else if (SESSION_REQUEST != h->type)
     {
@@ -600,25 +611,20 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
     {
     case SESSION_REQUEST:
       on_SESSION_REQUEST(datagram.size(), s, (const ses_req_data*)(h + 1),
-                              session_id, host);
+                         session_id, host);
       break;
 
     case SESSION_CONFIRM:
-      if (on_SESSION_CONFIRM(datagram.size(), s,
-                                  (const ses_resp_data*)(h + 1)))
-        {
-          for (const EncryptedMessage& msg : s->messages_to_send)
-            {
-              send_encrypted_message(s, msg);
-              manager_private->emitSendingResult(msg);
-            }
-          s->messages_to_send.clear();
-        }
+      on_SESSION_CONFIRM(datagram.size(), s, (const ses_resp_data*)(h + 1));
+      break;
+
+    case SESSION_ACK:
+      on_SESSION_ACK(datagram.size(), s);
       break;
 
     case ENCRYPED_DATA:
       on_ENCRYPED_DATA(datagram.size(), s, (const ses_enc_data*)(h + 1),
-                            uncompressed_size);
+                       uncompressed_size);
       break;
 
     default:
