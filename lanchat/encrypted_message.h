@@ -57,6 +57,7 @@ public:
 
 signals:
   void sendingResult(EncryptedMessage msg, bool is_ok, QString error_string);
+  void messageReceived(QUuid sender_uuid, QByteArray msg);
 
 };
 

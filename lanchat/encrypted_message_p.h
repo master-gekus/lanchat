@@ -28,6 +28,7 @@ public:
   void emitSendingResult(const EncryptedMessage& msg, bool is_ok,
                          const QString& error_string);
   void emitSendingResult(const EncryptedMessage& msg);
+  void emitMessageReceived(const QUuid& sender_uuid, const QByteArray& msg);
 
 private:
   EncryptedMessageManager *owner_;

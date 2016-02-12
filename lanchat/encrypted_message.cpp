@@ -404,6 +404,14 @@ EncryptedMessageManagerPrivate::emitSendingResult(const EncryptedMessage& msg)
     owner_->sendingResult(msg, true, QString());
 }
 
+void
+EncryptedMessageManagerPrivate::emitMessageReceived(const QUuid& sender_uuid,
+                                                    const QByteArray& msg)
+{
+  emit
+    owner_->messageReceived(sender_uuid, msg);
+}
+
 // ////////////////////////////////////////////////////////////////////////////
 EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
 {
@@ -582,6 +590,7 @@ namespace
       {
         // Good decrypted
         send_enc_data_ack(s, msg_id);
+        manager_private->emitMessageReceived(s->target_uuid, result);
       }
   }
 
