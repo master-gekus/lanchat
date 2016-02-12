@@ -1,4 +1,5 @@
 #include <QDateTime>
+#include <QtEndian>
 
 #include "app.h"
 #include "user_list_item.h"
@@ -244,7 +245,7 @@ namespace
         QByteArray compressed;
         compressed.resize(data_size + sizeof(quint32));
         quint32* d = (quint32*)compressed.data();
-        *(d++) = uncompressed_size;
+        *(d++) = qToBigEndian(uncompressed_size);
         memmove(d, enc_data->data, data_size);
         enc_dec_buf(d, data_size, DiffieHellman::raw_data(s->Key));
         result = qUncompress(compressed);

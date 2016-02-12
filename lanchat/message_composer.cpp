@@ -1,4 +1,5 @@
 #include <QByteArray>
+#include <QtEndian>
 
 #include "GJson.h"
 #include <QCryptographicHash>
@@ -103,10 +104,10 @@ MessageComposer::uncomposeNonEncrypted(const QByteArray& msg)
   quint16 flags = *((quint16*)data);
   if (0 != (flags & 0x8000))
     {
-      quint8 *cdata = (quint8*)alloca(msg.size() - 2);
-      *((quint32*)cdata) = flags & 0x3FFF;
-      memmove(cdata + 4, data + 2, msg.size() - 6);
-      return GJson::msgunpack(qUncompress(cdata, msg.size() - 2));
+      quint32* cdata = (quint32*)alloca(msg.size() - 2);
+      *(cdata++) = qToBigEndian((quint32)(flags & 0x3FFF));
+      memmove(cdata, data + 2, msg.size() - 6);
+      return GJson::msgunpack(qUncompress((quint8*)cdata, msg.size() - 2));
     }
   else
     {
