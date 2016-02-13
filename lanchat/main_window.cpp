@@ -1,12 +1,17 @@
 #include <QCloseEvent>
+#include <QSettings>
 
 #include "app.h"
 #include "about_box.h"
 #include "settings_dialog.h"
 #include "user_list_item.h"
+#include "chat_window.h"
 
 #include "main_window.h"
 #include "ui_main_window.h"
+
+#define MAIN_WINDOW_GROUP QStringLiteral("Main Window")
+#define MAIN_WINDOW_GEOMETRY_KEY QStringLiteral("Geometry")
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -18,6 +23,10 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
 
   setWindowIcon(LanChatApp::getMainIcon());
+
+  QSettings settings;
+  settings.beginGroup(MAIN_WINDOW_GROUP);
+  restoreGeometry(settings.value(MAIN_WINDOW_GEOMETRY_KEY).toByteArray());
 
   // Creating pre-defined ites
   online_header_ = new QTreeWidgetItem();
@@ -70,10 +79,17 @@ MainWindow::~MainWindow()
 void
 MainWindow::closeEvent(QCloseEvent* event)
 {
+  QSettings settings;
+  settings.beginGroup(MAIN_WINDOW_GROUP);
+  settings.setValue(MAIN_WINDOW_GEOMETRY_KEY, saveGeometry());
+
   if (event->spontaneous())
     event->ignore();
   else
-    event->accept();
+    {
+      event->accept();
+      ChatWindow::destroyAllWindows();
+    }
 }
 
 void
@@ -92,6 +108,16 @@ void
 MainWindow::on_actionSettings_triggered()
 {
   SettingsDialog(this).exec();
+}
+
+void
+MainWindow::on_listUsers_itemDoubleClicked(QTreeWidgetItem* item, int)
+{
+  UserListItem *uli = dynamic_cast<UserListItem*>(item);
+  if (0 == uli)
+    return;
+
+  ChatWindow::showWindow(this, uli->uuid());
 }
 
 void

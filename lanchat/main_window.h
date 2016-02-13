@@ -35,6 +35,8 @@ private slots:
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
 
+  void on_listUsers_itemDoubleClicked(QTreeWidgetItem* item, int);
+
 private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void onUserIsOffLine(QUuid uuid);
