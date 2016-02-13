@@ -1,3 +1,5 @@
+#include <QCloseEvent>
+
 #include "app.h"
 #include "about_box.h"
 #include "settings_dialog.h"
@@ -63,6 +65,21 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
   delete ui;
+}
+
+void
+MainWindow::closeEvent(QCloseEvent* event)
+{
+  if (event->spontaneous())
+    event->ignore();
+  else
+    event->accept();
+}
+
+void
+MainWindow::on_actionExit_triggered()
+{
+  close();
 }
 
 void

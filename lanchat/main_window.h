@@ -27,7 +27,11 @@ private:
                   *offline_header_;
   QTimer check_inactivity_timer_;
 
+protected:
+  void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE Q_DECL_FINAL;
+
 private slots:
+  void on_actionExit_triggered();
   void on_actionAbout_triggered();
   void on_actionSettings_triggered();
 
