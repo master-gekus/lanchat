@@ -422,8 +422,18 @@ void
 EncryptedMessageManagerPrivate::emitMessageReceived(const QUuid& sender_uuid,
                                                     const QByteArray& msg)
 {
-  emit
-    owner_->messageReceived(sender_uuid, msg);
+  int bytes_processed = 0;
+  GJson json = GJson::msgunpack(msg, &bytes_processed);
+  if (bytes_processed == msg.size())
+    {
+      emit
+        owner_->messageReceived(sender_uuid, json);
+    }
+  else
+    {
+      emit
+        owner_->messageReceived(sender_uuid, msg);
+    }
 }
 
 // ////////////////////////////////////////////////////////////////////////////

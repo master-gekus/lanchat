@@ -5,6 +5,8 @@
 #include <QUuid>
 #include <QExplicitlySharedDataPointer>
 
+#include "GJson.h"
+
 class LanChatApp;
 class EncryptedMessagePrivate;
 
@@ -54,10 +56,13 @@ public:
 
 public:
   EncryptedMessage sendMessage(const QUuid& target, const QByteArray& data);
+  inline EncryptedMessage sendMessage(const QUuid& target, const GJson& json)
+    { return sendMessage(target, json.msgpack()); }
 
 signals:
   void sendingResult(EncryptedMessage msg, bool is_ok, QString error_string);
   void messageReceived(QUuid sender_uuid, QByteArray msg);
+  void messageReceived(QUuid sender_uuid, GJson json);
 
 };
 
