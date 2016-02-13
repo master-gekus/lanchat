@@ -28,7 +28,7 @@ ChatWindow::ChatWindow(const QUuid& uuid) :
   chat_windows.insert(user_uuid_, this);
 
   ui->setupUi(this);
-  ui->splitter->setSizes({300,20});
+  ui->splitter->setSizes(QList<int>() << 300 << 20);
   ui->splitter->setStretchFactor(0, 1);
   ui->splitter->setStretchFactor(1, 0);
 
