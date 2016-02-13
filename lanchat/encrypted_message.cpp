@@ -96,11 +96,15 @@ namespace
   struct enc_msg_header
   {
     quint8 type;
-    quint8 session_id[16];
-    quint8 target_id[16];
+    quint8 session_uuid[16];
+    quint8 sended_uuid[16];
+    quint8 target_uuid[16];
   };
   #pragma pack(pop)
-  static_assert(33 == sizeof(enc_msg_header), "Invalid structure packing!");
+  static_assert(49 == sizeof(enc_msg_header), "Invalid structure packing!");
+
+  #define fromQUuid(d,s) memmove(d,s.toRfc4122().constData(), sizeof(d))
+  #define toQUuid(s) QUuid::fromRfc4122(QByteArray((const char*)s, sizeof(s)))
 
   quint8* precompose_data(QByteArray &data, EncryptionSession *session,
                           EncrypedMessageType message_type,
@@ -109,11 +113,9 @@ namespace
     data.resize((int)(sizeof(enc_msg_header) + addition_size));
     enc_msg_header *h = (enc_msg_header*)data.data();
     h->type = message_type;
-    memmove(h->session_id, session->id.toRfc4122().constData(),
-            sizeof(h->session_id));
-    memmove(h->target_id, session->target_uuid.toRfc4122().constData(),
-            sizeof(h->target_id));
-
+    fromQUuid(h->session_uuid, session->id);
+    fromQUuid(h->sended_uuid, qApp->userUuid());
+    fromQUuid(h->target_uuid, session->target_uuid);
     return (quint8*)(h + 1);
   }
 
@@ -135,7 +137,6 @@ namespace
   #pragma pack(push, 1)
   struct ses_req_data
   {
-    quint8 requester_uuid[16];
     quint8 p[DiffieHellman::KeySize];
     quint8 q[DiffieHellman::KeySize];
     quint8 A[DiffieHellman::KeySize];
@@ -149,9 +150,6 @@ namespace
     ses_req_data* d = (ses_req_data*)precompose_data(data, s,
                                                      SESSION_REQUEST,
                                                      sizeof(ses_req_data));
-    memmove(d->requester_uuid, qApp->userUuid().toRfc4122().constData(),
-            sizeof(d->requester_uuid));
-
     memmove(d->p, DiffieHellman::raw_data(s->p), sizeof(d->p));
     memmove(d->q, DiffieHellman::raw_data(s->q), sizeof(d->q));
     memmove(d->A, DiffieHellman::raw_data(s->A), sizeof(d->A));
@@ -508,7 +506,9 @@ namespace
 {
   void on_SESSION_REQUEST(int msg_size, EncryptionSession *s,
                           const ses_req_data *d,
-                          const QUuid& session_id, const QHostAddress& host)
+                          const QUuid& session_uuid,
+                          const QUuid& requester_uuid,
+                          const QHostAddress& host)
   {
     if (msg_size != (sizeof(enc_msg_header) + sizeof(ses_req_data)))
       {
@@ -523,11 +523,7 @@ namespace
         return;
       }
 
-    QUuid requester_uuid
-      = QUuid::fromRfc4122(QByteArray((const char*)d->requester_uuid,
-                                      sizeof(d->requester_uuid)));
-
-    s = new EncryptionSession(session_id, requester_uuid, host);
+    s = new EncryptionSession(session_uuid, requester_uuid, host);
     DiffieHellman::from_raw(s->p, d->p);
     DiffieHellman::from_raw(s->q, d->q);
     DiffieHellman::from_raw(s->A, d->A);
@@ -628,19 +624,17 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
     }
 
   const enc_msg_header *h = (const enc_msg_header*)datagram.constData();
-  QUuid session_id = QUuid::fromRfc4122(QByteArray((const char*)h->session_id,
-                                                   sizeof(h->session_id)));
-  QUuid target_id = QUuid::fromRfc4122(QByteArray((const char*)h->target_id,
-                                                  sizeof(h->target_id)));
+  QUuid session_uuid = toQUuid(h->session_uuid);
+  QUuid target_uuid = toQUuid(h->target_uuid);
 
-  if (target_id != qApp->userUuid())
+  if (target_uuid != qApp->userUuid())
     {
       qDebug("Encrypted datagram has invalid target.");
       return;
     }
 
   EncryptionSession *s = 0;
-  auto it = sessions_by_id.constFind(session_id);
+  auto it = sessions_by_id.constFind(session_uuid);
   if (sessions_by_id.constEnd() != it)
     {
       s = it.value();
@@ -658,7 +652,7 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
     {
     case SESSION_REQUEST:
       on_SESSION_REQUEST(datagram.size(), s, (const ses_req_data*)(h + 1),
-                         session_id, host);
+                         session_uuid, toQUuid(h->sended_uuid), host);
       break;
 
     case SESSION_CONFIRM:
