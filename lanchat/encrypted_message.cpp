@@ -119,6 +119,21 @@ namespace
     return (quint8*)(h + 1);
   }
 
+  void send_simple_message(EncrypedMessageType message_type,
+                           const QUuid& session_uuid, const QUuid& target_uuid,
+                           const QHostAddress& host)
+  {
+    QByteArray data;
+    data.resize(sizeof(enc_msg_header));
+    enc_msg_header *h = (enc_msg_header*)data.data();
+    h->type = message_type;
+    fromQUuid(h->session_uuid, session_uuid);
+    fromQUuid(h->sended_uuid, qApp->userUuid());
+    fromQUuid(h->target_uuid, target_uuid);
+
+    qApp->sendDatagram(host, MessageComposer::composeEncrypted(data, 0));
+  }
+
   void send_simple_session_message(EncryptionSession* s,
                                    EncrypedMessageType message_type)
   {
@@ -563,6 +578,24 @@ namespace
       send_encrypted_message(s, s->messages_to_send.takeFirst());
   }
 
+  void on_SESSION_NOT_FOUND(int msg_size, EncryptionSession *s)
+  {
+    if (msg_size != sizeof(enc_msg_header))
+      {
+        qDebug("Invalid size of SESSION_CONFIRM message!");
+        return;
+      }
+
+    // Let's restart session!
+    QList<int> ids = s->messages_to_confirm.keys();
+    qSort(ids);
+    for (int i = (ids.size() - 1); i >= 0; i--)
+      s->messages_to_send.prepend(s->messages_to_confirm.take(ids[i]));
+    s->state = EncryptionSession::WaitForConfirm;
+
+    send_session_request(s);
+  }
+
   void on_ENCRYPED_DATA(int msg_size, EncryptionSession *s,
                         const enc_data *d,
                         int uncompressed_size)
@@ -643,8 +676,16 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
     }
   else if (SESSION_REQUEST != h->type)
     {
-      qDebug("Access to unexisting session!");
-      // TODO: Need to send notification!
+      if (SESSION_NOT_FOUND != h->type)
+        {
+          qDebug("Access to unexisting session. sending SESSION_NOT_FOUND.");
+          send_simple_message(SESSION_NOT_FOUND, session_uuid,
+                              toQUuid(h->sended_uuid), host);
+        }
+      else
+        {
+          qDebug("A vicious circle of SESSION_NOT_FOUND messages was broken!");
+        }
       return;
     }
 
@@ -661,6 +702,10 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
 
     case SESSION_ACK:
       on_SESSION_ACK(datagram.size(), s);
+      break;
+
+    case SESSION_NOT_FOUND:
+      on_SESSION_NOT_FOUND(datagram.size(), s);
       break;
 
     case ENCRYPED_DATA:
