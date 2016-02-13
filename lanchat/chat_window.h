@@ -19,8 +19,8 @@ private:
   ~ChatWindow();
 
 public:
-  static ChatWindow* findWindow(const QUuid& uuid);
-  static ChatWindow* showWindow(MainWindow* parent, const QUuid& uuid);
+  static ChatWindow* createWindow(MainWindow* parent, const QUuid& uuid,
+                                  bool show_window);
   static void destroyAllWindows();
 
 protected:

@@ -117,7 +117,7 @@ MainWindow::on_listUsers_itemDoubleClicked(QTreeWidgetItem* item, int)
   if (0 == uli)
     return;
 
-  ChatWindow::showWindow(this, uli->uuid());
+  ChatWindow::createWindow(this, uli->uuid(), true);
 }
 
 void

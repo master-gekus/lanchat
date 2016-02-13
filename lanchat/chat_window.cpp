@@ -44,17 +44,7 @@ ChatWindow::~ChatWindow()
 }
 
 ChatWindow*
-ChatWindow::findWindow(const QUuid& uuid)
-{
-  auto it = chat_windows.constFind(uuid);
-  if (chat_windows.constEnd() == it)
-    return 0;
-
-  return it.value();
-}
-
-ChatWindow*
-ChatWindow::showWindow(MainWindow* parent, const QUuid& uuid)
+ChatWindow::createWindow(MainWindow* parent, const QUuid& uuid, bool show_window)
 {
   ChatWindow *window = 0;
 
@@ -71,23 +61,26 @@ ChatWindow::showWindow(MainWindow* parent, const QUuid& uuid)
       window = it.value();
     }
 
-  if (!window->isVisible())
+  if (show_window)
     {
-      window->show();
+      if (!window->isVisible())
+        {
+          window->show();
 
-      QSettings settings;
-      settings.beginGroup(CHAT_WINDOW_GROUP);
-      settings.beginGroup(window->user_uuid_.toString());
+          QSettings settings;
+          settings.beginGroup(CHAT_WINDOW_GROUP);
+          settings.beginGroup(window->user_uuid_.toString());
 
-      window->restoreGeometry(settings.value(CHAT_WINDOW_GEOMETRY_KEY).toByteArray());
-      GUiHelpers::restoreElementsState(window, settings);
+          window->restoreGeometry(settings.value(CHAT_WINDOW_GEOMETRY_KEY).toByteArray());
+          GUiHelpers::restoreElementsState(window, settings);
+        }
+
+      if (window->isMinimized())
+        window->showNormal();
+
+      window->activateWindow();
+      window->raise();
     }
-
-  if (window->isMinimized())
-    window->showNormal();
-
-  window->activateWindow();
-  window->raise();
 
   return window;
 }
