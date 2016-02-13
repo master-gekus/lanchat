@@ -31,7 +31,13 @@
    </property>
    <item>
     <widget class="QFrame" name="frame">
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
       <property name="spacing">
        <number>0</number>
       </property>
@@ -42,7 +48,7 @@
        <number>0</number>
       </property>
       <property name="rightMargin">
-       <number>0</number>
+       <number>40</number>
       </property>
       <property name="bottomMargin">
        <number>0</number>
@@ -62,6 +68,12 @@
       </item>
       <item>
        <widget class="QLabel" name="labelMessage">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="styleSheet">
          <string notr="true">background-color: rgb(224, 255, 224);
 font-size: 10pt;
@@ -69,10 +81,13 @@ padding: 2px;
 </string>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string>message</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

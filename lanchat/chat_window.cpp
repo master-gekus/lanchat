@@ -7,6 +7,8 @@
 #include "app.h"
 #include "encrypted_message.h"
 #include "main_window.h"
+#include "chat_outgoing_message.h"
+#include "chat_incoming_message.h"
 
 #include "chat_window.h"
 #include "ui_chat_window.h"
@@ -115,6 +117,8 @@ ChatWindow::on_btnSend_clicked()
   QString msg = ui->editMessage->toPlainText().trimmed();
   if (msg.isEmpty())
     return;
+  ui->editMessage->clear();
+  ui->editMessage->setFocus();
 
   QUuid message_id = QUuid::createUuid();
   GJson json;
@@ -123,10 +127,18 @@ ChatWindow::on_btnSend_clicked()
   json["Message"] = msg;
 
   gEmm->sendMessage(user_uuid_, json);
+
+  QTreeWidgetItem *item = new QTreeWidgetItem();
+  ui->listHistory->addTopLevelItem(item);
+  ui->listHistory->setItemWidget(item, 0, new ChatOutgoingMessage(msg));
+  ui->listHistory->scrollToItem(item);
 }
 
 void
 ChatWindow::processJson(const GJson& json)
 {
-  qDebug("ChatWindow::processJson(%s)", json.toJson(GJson::MinSize).constData());
+  QTreeWidgetItem *item = new QTreeWidgetItem();
+  ui->listHistory->addTopLevelItem(item);
+  ui->listHistory->setItemWidget(item, 0, new ChatIncomingMessage(json["Message"].toString()));
+  ui->listHistory->scrollToItem(item);
 }

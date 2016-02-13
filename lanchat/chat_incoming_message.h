@@ -12,7 +12,7 @@ class ChatIncomingMessage : public QWidget
   Q_OBJECT
 
 public:
-  explicit ChatIncomingMessage(QWidget *parent = 0);
+  explicit ChatIncomingMessage(const QString& text);
   ~ChatIncomingMessage();
 
 private:
