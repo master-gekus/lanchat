@@ -440,6 +440,9 @@ EncryptedMessageManager::EncryptedMessageManager(LanChatApp* app)
 
 EncryptedMessageManager::~EncryptedMessageManager()
 {
+  for (EncryptionSession *s : sessions_by_id.values())
+    delete s;
+
   Q_ASSERT(this == manager);
   manager = 0;
   delete manager_private;
@@ -537,6 +540,9 @@ namespace
         send_simple_session_message(s, SESSION_DECLINED);
         return;
       }
+
+    if (sessions_by_target.contains(requester_uuid))
+        delete sessions_by_target[requester_uuid];
 
     s = new EncryptionSession(session_uuid, requester_uuid, host);
     DiffieHellman::from_raw(s->p, d->p);
@@ -678,7 +684,6 @@ EncryptedMessageManagerPrivate::onEncrypedDatagram(QHostAddress host,
     {
       if (SESSION_NOT_FOUND != h->type)
         {
-          qDebug("Access to unexisting session. sending SESSION_NOT_FOUND.");
           send_simple_message(SESSION_NOT_FOUND, session_uuid,
                               toQUuid(h->sended_uuid), host);
         }
