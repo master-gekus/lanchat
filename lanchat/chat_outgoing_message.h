@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+class QLabel;
+
 namespace Ui {
   class ChatOutgoingMessage;
 }
@@ -10,6 +12,10 @@ namespace Ui {
 class ChatOutgoingMessage : public QWidget
 {
   Q_OBJECT
+
+public:
+  QLabel* labelStatus() const;
+  QString messageText() const;
 
 public:
   explicit ChatOutgoingMessage(const QString& text);

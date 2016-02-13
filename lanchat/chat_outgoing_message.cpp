@@ -7,10 +7,21 @@ ChatOutgoingMessage::ChatOutgoingMessage(const QString& text) :
 {
   ui->setupUi(this);
   ui->labelMessage->setText(text);
-  ui->labelStatus->setText(QStringLiteral("Отправка не удалась <A HREF=\"qqqq\">Повторить</A>"));
 }
 
 ChatOutgoingMessage::~ChatOutgoingMessage()
 {
   delete ui;
+}
+
+QLabel*
+ChatOutgoingMessage::labelStatus() const
+{
+  return ui->labelStatus;
+}
+
+QString
+ChatOutgoingMessage::messageText() const
+{
+  return ui->labelMessage->text();
 }

@@ -1,5 +1,6 @@
 #include <QCloseEvent>
 #include <QSettings>
+#include <QMetaMethod>
 
 #include "app.h"
 #include "about_box.h"
@@ -140,7 +141,27 @@ MainWindow::onUserIsOffLine(QUuid uuid)
 void
 MainWindow::onMessageReceived(const QUuid& sender_uuid, const GJson& json)
 {
-  ChatWindow::createWindow(this, sender_uuid, false)->processJson(json);
+  ChatWindow *window = ChatWindow::createWindow(this, sender_uuid, false);
+  Q_ASSERT(0 != window);
+
+  QByteArray action = json["Action"].toByteArray();
+  if (action.isEmpty())
+    {
+      qDebug("MainWindow::onMessageReceived(): No action in message.");
+      return;
+    }
+
+  int method_index = window->metaObject()->indexOfSlot(
+    QMetaObject::normalizedSignature("process" + action + "(GJson)"));
+  if (0 > method_index)
+    {
+      qDebug("ChatWindow: No slot for action \"%s\"!", action.constData());
+      return;
+    }
+
+  window->metaObject()->method(method_index).invoke(window,
+                                                    Qt::QueuedConnection,
+                                                    Q_ARG(GJson, json));
 }
 
 void

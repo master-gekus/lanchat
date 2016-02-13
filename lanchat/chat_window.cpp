@@ -1,6 +1,8 @@
 #include <QMap>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QLabel>
+#include <QDateTime>
 
 #include "GUiHelpers.h"
 
@@ -9,6 +11,7 @@
 #include "main_window.h"
 #include "chat_outgoing_message.h"
 #include "chat_incoming_message.h"
+#include "user_list_item.h"
 
 #include "chat_window.h"
 #include "ui_chat_window.h"
@@ -36,6 +39,15 @@ ChatWindow::ChatWindow(const QUuid& uuid) :
   ui->splitter->setStretchFactor(1, 0);
 
   setWindowIcon(qApp->getMainIcon());
+
+  UserListItem *item = UserListItem::findItem(user_uuid_);
+  Q_ASSERT(0 != item);
+
+  setWindowTitle(QStringLiteral("Chat with %1 :: Lan Chat").arg(item->name()));
+
+  connect(gEmm, SIGNAL(sendingResult(EncryptedMessage,bool,QString)),
+          SLOT(onSendingResult(EncryptedMessage,bool,QString)),
+          Qt::QueuedConnection);
 }
 
 ChatWindow::~ChatWindow()
@@ -120,25 +132,92 @@ ChatWindow::on_btnSend_clicked()
   ui->editMessage->clear();
   ui->editMessage->setFocus();
 
-  QUuid message_id = QUuid::createUuid();
+  QUuid msg_uuid = QUuid::createUuid();
   GJson json;
   json["Action"] = "NewMessage";
-  json["MessageId"] = message_id.toRfc4122();
+  json["MessageId"] = msg_uuid.toRfc4122();
   json["Message"] = msg;
+  int msg_id = gEmm->sendMessage(user_uuid_, json).id();
 
-  gEmm->sendMessage(user_uuid_, json);
+  ChatOutgoingMessage *msg_widget = new ChatOutgoingMessage(msg);
+  outgoing_messages_.insert(msg_uuid, msg_widget);
+  sent_messages_.insert(msg_id, msg_uuid);
+
+  connect(msg_widget->labelStatus(), SIGNAL(linkActivated(QString)),
+          SLOT(onMessageLinkClicked(QString)), Qt::QueuedConnection);
 
   QTreeWidgetItem *item = new QTreeWidgetItem();
   ui->listHistory->addTopLevelItem(item);
-  ui->listHistory->setItemWidget(item, 0, new ChatOutgoingMessage(msg));
+  ui->listHistory->setItemWidget(item, 0, msg_widget);
   ui->listHistory->scrollToItem(item);
 }
 
 void
-ChatWindow::processJson(const GJson& json)
+ChatWindow::onSendingResult(EncryptedMessage msg, bool is_ok, QString)
 {
+  if (!sent_messages_.contains(msg.id()))
+    return;
+
+  QUuid msg_uuid = sent_messages_.take(msg.id());
+
+  if (!outgoing_messages_.contains(msg_uuid))
+    {
+      qDebug("ChatWindow::onSendingResult(): Message widget not found.");
+      return;
+    }
+
+  ChatOutgoingMessage *msg_widget = outgoing_messages_[msg_uuid];
+
+  if (is_ok)
+    {
+      msg_widget->labelStatus()->setText(QDateTime::currentDateTime().toString(
+        QStringLiteral("'Delivered at 'dd.MM.yy HH:mm")));
+    }
+  else
+    {
+      msg_widget->labelStatus()->setText(
+        QStringLiteral("Error sending message!&nbsp;&nbsp;<A HREF=\"%1\">Retry</A>")
+          .arg(msg_uuid.toString()));
+    }
+}
+
+void
+ChatWindow::processNewMessage(const GJson& json)
+{
+  QUuid msg_uuid = QUuid::fromRfc4122(json["MessageId"].toByteArray());
+  if (msg_uuid.isNull())
+    {
+      qDebug("ChatWindow::processNewMessage(): Invalid message uuid.");
+      return;
+    }
   QTreeWidgetItem *item = new QTreeWidgetItem();
   ui->listHistory->addTopLevelItem(item);
   ui->listHistory->setItemWidget(item, 0, new ChatIncomingMessage(json["Message"].toString()));
   ui->listHistory->scrollToItem(item);
+
+  GJson resp;
+  resp["Action"] = "MessageViewed";
+  resp["MessageId"] = msg_uuid.toRfc4122();
+  gEmm->sendMessage(user_uuid_, resp);
+}
+
+void
+ChatWindow::onMessageLinkClicked(QString strLink)
+{
+  QUuid msg_uuid(strLink);
+  if (!outgoing_messages_.contains(msg_uuid))
+    {
+      qDebug("ChatWindow::onMessageLinkClicked(): unknown message guid.");
+      return;
+    }
+
+  ChatOutgoingMessage *msg_widget = outgoing_messages_[msg_uuid];
+  msg_widget->labelStatus()->setText(QStringLiteral("Sending..."));
+
+  GJson json;
+  json["Action"] = "NewMessage";
+  json["MessageId"] = msg_uuid.toRfc4122();
+  json["Message"] = msg_widget->messageText();
+  int msg_id = gEmm->sendMessage(user_uuid_, json).id();
+  sent_messages_.insert(msg_id, msg_uuid);
 }
