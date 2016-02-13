@@ -5,6 +5,7 @@
 #include "GUiHelpers.h"
 
 #include "app.h"
+#include "encrypted_message.h"
 #include "main_window.h"
 
 #include "chat_window.h"
@@ -106,4 +107,26 @@ ChatWindow::closeEvent(QCloseEvent* event)
   GUiHelpers::saveElementsState(this, settings);
 
   QMainWindow::closeEvent(event);
+}
+
+void
+ChatWindow::on_btnSend_clicked()
+{
+  QString msg = ui->editMessage->toPlainText().trimmed();
+  if (msg.isEmpty())
+    return;
+
+  QUuid message_id = QUuid::createUuid();
+  GJson json;
+  json["Action"] = "NewMessage";
+  json["MessageId"] = message_id.toRfc4122();
+  json["Message"] = msg;
+
+  gEmm->sendMessage(user_uuid_, json);
+}
+
+void
+ChatWindow::processJson(const GJson& json)
+{
+  qDebug("ChatWindow::processJson(%s)", json.toJson(GJson::MinSize).constData());
 }

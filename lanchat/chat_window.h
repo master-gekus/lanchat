@@ -9,6 +9,7 @@ namespace Ui {
 }
 
 class MainWindow;
+class GJson;
 
 class ChatWindow : public QMainWindow
 {
@@ -23,8 +24,14 @@ public:
                                   bool show_window);
   static void destroyAllWindows();
 
+public:
+  void processJson(const GJson& json);
+
 protected:
   void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE Q_DECL_FINAL;
+
+private slots:
+  void on_btnSend_clicked();
 
 private:
   Ui::ChatWindow *ui;

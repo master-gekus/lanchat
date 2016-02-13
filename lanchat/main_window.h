@@ -12,6 +12,7 @@ namespace Ui {
 }
 
 class UserListItem;
+class GJson;
 
 class MainWindow : public QMainWindow
 {
@@ -40,6 +41,7 @@ private slots:
 private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void onUserIsOffLine(QUuid uuid);
+  void onMessageReceived(const QUuid& sender_uuid, const GJson& json);
 
   void checkInactivity();
 

@@ -6,6 +6,7 @@
 #include "settings_dialog.h"
 #include "user_list_item.h"
 #include "chat_window.h"
+#include "encrypted_message.h"
 
 #include "main_window.h"
 #include "ui_main_window.h"
@@ -65,6 +66,8 @@ MainWindow::MainWindow(QWidget *parent) :
           Qt::QueuedConnection);
   connect(qApp, SIGNAL(userIsOffLine(QUuid)), SLOT(onUserIsOffLine(QUuid)),
           Qt::QueuedConnection);
+  connect(gEmm, SIGNAL(messageReceived(QUuid,GJson)),
+          SLOT(onMessageReceived(QUuid,GJson)), Qt::QueuedConnection);
   connect(&check_inactivity_timer_, SIGNAL(timeout()), SLOT(checkInactivity()),
           Qt::QueuedConnection);
 
@@ -132,6 +135,12 @@ void
 MainWindow::onUserIsOffLine(QUuid uuid)
 {
   upsert_user_item(uuid, QString(), false);
+}
+
+void
+MainWindow::onMessageReceived(const QUuid& sender_uuid, const GJson& json)
+{
+  ChatWindow::createWindow(this, sender_uuid, false)->processJson(json);
 }
 
 void
