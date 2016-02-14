@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
   ui->setupUi(this);
 
-  setWindowIcon(LanChatApp::getMainIcon());
+  setWindowIcon(qApp->iconMain());
 
   QSettings settings;
   settings.beginGroup(MAIN_WINDOW_GROUP);

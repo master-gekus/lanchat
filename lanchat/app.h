@@ -17,9 +17,10 @@ public:
   ~LanChatApp();
 
 public:
-  static QIcon getMainIcon();
+  QIcon iconMain();
+  QIcon iconUserOnline();
+  QIcon iconUserOffline();
 
-public:
   bool isInitialized() const;
   const QString& errorString() const;
 

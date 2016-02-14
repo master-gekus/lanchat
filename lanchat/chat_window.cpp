@@ -38,7 +38,7 @@ ChatWindow::ChatWindow(const QUuid& uuid) :
   ui->splitter->setStretchFactor(0, 1);
   ui->splitter->setStretchFactor(1, 0);
 
-  setWindowIcon(qApp->getMainIcon());
+  setWindowIcon(qApp->iconMain());
 
   UserListItem *item = UserListItem::findItem(user_uuid_);
   Q_ASSERT(0 != item);

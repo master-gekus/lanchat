@@ -24,20 +24,42 @@ LanChatApp::~LanChatApp()
 }
 
 QIcon
-LanChatApp::getMainIcon()
+LanChatApp::iconMain()
 {
-  static QIcon main_icon_;
-  if (main_icon_.isNull())
+  static QIcon icon;
+  if (icon.isNull())
     {
-      main_icon_.addFile(":/res/main_icon/16x16.png");
-      main_icon_.addFile(":/res/main_icon/32x32.png");
-      main_icon_.addFile(":/res/main_icon/48x48.png");
-      main_icon_.addFile(":/res/main_icon/64x64.png");
-      main_icon_.addFile(":/res/main_icon/128x128.png");
+      icon.addFile(QStringLiteral(":/res/main_icon/16x16.png"));
+      icon.addFile(QStringLiteral(":/res/main_icon/32x32.png"));
+      icon.addFile(QStringLiteral(":/res/main_icon/48x48.png"));
+      icon.addFile(QStringLiteral(":/res/main_icon/64x64.png"));
+      icon.addFile(QStringLiteral(":/res/main_icon/128x128.png"));
     }
-
-  return main_icon_;
+  return icon;
 }
+
+QIcon
+LanChatApp::iconUserOnline()
+{
+  static QIcon icon;
+  if (icon.isNull())
+    {
+      icon.addFile(QStringLiteral(":/res/icons16/user-online.png"));
+    }
+  return icon;
+}
+
+QIcon
+LanChatApp::iconUserOffline()
+{
+  static QIcon icon;
+  if (icon.isNull())
+    {
+      icon.addFile(QStringLiteral(":/res/icons16/user-offline.png"));
+    }
+  return icon;
+}
+
 
 bool
 LanChatApp::isInitialized() const

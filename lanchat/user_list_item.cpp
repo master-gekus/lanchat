@@ -2,6 +2,7 @@
 #include <QDateTime>
 #include <QMap>
 
+#include "app.h"
 #include "user_list_item.h"
 
 #define KNOWN_USERS_GROUP QStringLiteral("Known Users")
@@ -33,16 +34,7 @@ private:
 
   QIcon icon() const
   {
-    static QIcon online;
-    static QIcon offline;
-
-    if (online.isNull())
-      online.addFile(QStringLiteral(":/res/icons16/user-online.png"));
-
-    if (offline.isNull())
-      offline.addFile(QStringLiteral(":/res/icons16/user-offline.png"));
-
-    return is_online_ ? online : offline;
+    return is_online_ ? qApp->iconUserOnline() : qApp->iconUserOffline();
   }
 
 private:
