@@ -22,7 +22,8 @@ MainWindow::MainWindow(QWidget *parent) :
   online_header_(0),
   offline_header_(0),
   check_inactivity_timer_(this),
-  tray_icon_(0)
+  tray_icon_(0),
+  icon_blinking_(false)
 {
   ui->setupUi(this);
 
@@ -174,8 +175,32 @@ MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 void
 MainWindow::onIconBlinks()
 {
-  if (0 != tray_icon_)
-    tray_icon_->setIcon(qApp->iconMessageBlinkCurrent());
+  int items_count = ui->listUsers->topLevelItemCount();
+  bool has_blinking_items = false;
+  for (int i = 0; i < items_count; i++)
+    {
+      UserListItem *item
+        = dynamic_cast<UserListItem*>(ui->listUsers->topLevelItem(i));
+      if (0 == item)
+        continue;
+      if (item->updateIcon())
+        has_blinking_items = true;
+    }
+
+  if (0 == tray_icon_)
+    return;
+
+  if (icon_blinking_ == has_blinking_items)
+    {
+      if (icon_blinking_)
+        tray_icon_->setIcon(qApp->iconMessageBlinkCurrent());
+    }
+  else
+    {
+      icon_blinking_ = has_blinking_items;
+      tray_icon_->setIcon(icon_blinking_ ? qApp->iconMessageBlinkCurrent()
+                          : qApp->iconMain());
+    }
 }
 
 void
@@ -243,7 +268,7 @@ MainWindow::checkInactivity()
     upsert_user_item(uuid, QString(), false);
 }
 
-UserListItem *
+UserListItem*
 MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_online)
 {
   bool is_selected = false;
@@ -270,10 +295,13 @@ MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_onl
     }
   else
     {
-      if (name.isEmpty())
+      if ((name.isEmpty()) && (!is_online))
         return 0;
 
-      item = new UserListItem(uuid, name, is_online);
+      item = new UserListItem(uuid, name.isEmpty()
+                                    ? QStringLiteral("<Unknown user name>")
+                                    : name,
+                              is_online);
     }
 
   int first_index = is_online ? 1
@@ -314,4 +342,24 @@ MainWindow::upsert_user_item(const QUuid& uuid, const QString& name, bool is_onl
     }
 
   return item;
+}
+
+void
+MainWindow::set_icon_blinking(bool blinking)
+{
+  if (icon_blinking_ == blinking)
+    return;
+
+  icon_blinking_ = blinking;
+  if (0 == tray_icon_)
+    return;
+
+  if (icon_blinking_)
+    {
+      tray_icon_->setIcon(qApp->iconMessageBlinkCurrent());
+    }
+  else
+    {
+      tray_icon_->setIcon(qApp->iconMain());
+    }
 }

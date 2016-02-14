@@ -3,6 +3,7 @@
 #include <QMap>
 
 #include "app.h"
+#include "chat_window.h"
 #include "user_list_item.h"
 
 #define KNOWN_USERS_GROUP QStringLiteral("Known Users")
@@ -17,7 +18,8 @@ private:
     uuid_(uuid),
     name_(name),
     is_online_(is_online),
-    last_activity_(QDateTime::currentMSecsSinceEpoch())
+    last_activity_(QDateTime::currentMSecsSinceEpoch()),
+    icon_blinking_(false)
   {
     QSettings settings;
     settings.beginGroup(KNOWN_USERS_GROUP);
@@ -34,7 +36,8 @@ private:
 
   QIcon icon() const
   {
-    return is_online_ ? qApp->iconUserOnline() : qApp->iconUserOffline();
+    return icon_blinking_ ? qApp->iconMessageBlinkCurrent()
+           : is_online_ ? qApp->iconUserOnline() : qApp->iconUserOffline();
   }
 
 private:
@@ -44,6 +47,7 @@ private:
   bool is_online_;
   QHostAddress host_address_;
   qint64 last_activity_;
+  bool icon_blinking_;
 
 private:
   static QMap<QUuid, UserListItem*> items;
@@ -114,6 +118,10 @@ UserListItem::setName(const QString& name)
 
   d->name_ = name;
   updateActivity();
+
+  ChatWindow *window = ChatWindow::findWindow(d->uuid_);
+  if (0 != window)
+    window->updateUserState();
 }
 
 bool
@@ -130,6 +138,10 @@ UserListItem::setOnline(bool is_online)
 
   d->is_online_ = is_online;
   updateActivity();
+
+  ChatWindow *window = ChatWindow::findWindow(d->uuid_);
+  if (0 != window)
+    window->updateUserState();
 }
 
 QHostAddress UserListItem::hostAddress() const
@@ -166,6 +178,27 @@ UserListItem::findItem(const QUuid& uuid)
 {
   auto it = UserListItemPrivate::items.constFind(uuid);
   return (UserListItemPrivate::items.constEnd() == it) ? 0 : it.value();
+}
+
+bool UserListItem::updateIcon()
+{
+  bool new_blinking = false;
+  ChatWindow *window = ChatWindow::findWindow(d->uuid_);
+  if (0 != window)
+    new_blinking = window->hasUnreadMessages();
+
+  if (d->icon_blinking_ != new_blinking)
+    {
+      d->icon_blinking_ = new_blinking;
+      emitDataChanged();
+    }
+  else
+    {
+      if (d->icon_blinking_)
+        emitDataChanged();
+    }
+
+  return d->icon_blinking_;
 }
 
 QList<QPair<QUuid,QString> >

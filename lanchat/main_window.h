@@ -30,6 +30,7 @@ private:
                   *offline_header_;
   QTimer check_inactivity_timer_;
   QSystemTrayIcon *tray_icon_;
+  bool icon_blinking_;
 
 protected:
   void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE Q_DECL_FINAL;
@@ -44,7 +45,6 @@ private slots:
   void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
   void onIconBlinks();
 
-private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void onUserIsOffLine(QUuid uuid);
   void onMessageReceived(const QUuid& sender_uuid, const GJson& json);
@@ -54,6 +54,7 @@ private slots:
 // Helpers
 private:
   UserListItem* upsert_user_item(const QUuid& uuid, const QString& name, bool is_online);
+  void set_icon_blinking(bool blinking);
 };
 
 #endif // MAIN_WINDOW_H

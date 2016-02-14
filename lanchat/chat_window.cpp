@@ -28,6 +28,8 @@ namespace
 ChatWindow::ChatWindow(const QUuid& uuid) :
   QMainWindow(0),
   ui(new Ui::ChatWindow),
+  is_on_top_(false),
+  icon_blinks_(false),
   user_uuid_(uuid)
 {
   Q_ASSERT(!chat_windows.contains(user_uuid_));
@@ -38,15 +40,12 @@ ChatWindow::ChatWindow(const QUuid& uuid) :
   ui->splitter->setStretchFactor(0, 1);
   ui->splitter->setStretchFactor(1, 0);
 
-  setWindowIcon(qApp->iconMain());
-
-  UserListItem *item = UserListItem::findItem(user_uuid_);
-  Q_ASSERT(0 != item);
-
-  setWindowTitle(QStringLiteral("Chat with %1 :: Lan Chat").arg(item->name()));
+  updateUserState();
 
   connect(gEmm, SIGNAL(sendingResult(EncryptedMessage,bool,QString)),
           SLOT(onSendingResult(EncryptedMessage,bool,QString)),
+          Qt::QueuedConnection);
+  connect(qApp, SIGNAL(iconBlinks()), SLOT(icon_blinks()),
           Qt::QueuedConnection);
 }
 
@@ -56,6 +55,36 @@ ChatWindow::~ChatWindow()
 
   Q_ASSERT(chat_windows.contains(user_uuid_));
   chat_windows.remove(user_uuid_);
+}
+
+void
+ChatWindow::updateUserState()
+{
+  UserListItem *item = UserListItem::findItem(user_uuid_);
+  Q_ASSERT(0 != item);
+
+  setWindowIcon(icon_blinks_ ? qApp->iconMessageBlinkCurrent()
+                : item->isOnline() ? qApp->iconUserOnline()
+                : qApp->iconUserOffline());
+
+  setWindowTitle(QStringLiteral("Chat with %1%2 :: Lan Chat")
+    .arg(item->name(), item->isOnline() ? QString()
+                                        : QStringLiteral(" [off-line]")));
+}
+
+bool
+ChatWindow::hasUnreadMessages()
+{
+  return !unread_messages_.isEmpty();
+}
+
+void
+ChatWindow::icon_blinks()
+{
+  if (!icon_blinks_)
+    return;
+
+  setWindowIcon(qApp->iconMessageBlinkCurrent());
 }
 
 ChatWindow*
@@ -68,8 +97,8 @@ ChatWindow::createWindow(MainWindow* parent, const QUuid& uuid, bool show_window
     {
       window = new ChatWindow(uuid);
 
-      // TODO: Connect signals/slots
-      Q_UNUSED(parent);
+      connect(window, SIGNAL(unreadMessageListChanged()), parent,
+              SLOT(onIconBlinks()), Qt::QueuedConnection);
     }
   else
     {
@@ -100,6 +129,16 @@ ChatWindow::createWindow(MainWindow* parent, const QUuid& uuid, bool show_window
   return window;
 }
 
+ChatWindow*
+ChatWindow::findWindow(const QUuid& uuid)
+{
+  auto it = chat_windows.constFind(uuid);
+  if (chat_windows.constEnd() == it)
+    return 0;
+
+  return it.value();
+}
+
 void
 ChatWindow::destroyAllWindows()
 {
@@ -124,6 +163,24 @@ ChatWindow::closeEvent(QCloseEvent* event)
 }
 
 void
+ChatWindow::changeEvent(QEvent *event)
+{
+  QMainWindow::changeEvent(event);
+
+  if (QEvent::ActivationChange != event->type())
+    return;
+
+  bool is_active = (isVisible() && isActiveWindow());
+  if (is_on_top_ == is_active)
+    return;
+  is_on_top_ = is_active;
+
+  if (is_on_top_)
+    QMetaObject::invokeMethod(this, "clear_unread_messages",
+                              Qt::QueuedConnection);
+}
+
+void
 ChatWindow::on_btnSend_clicked()
 {
   QString msg = ui->editMessage->toPlainText().trimmed();
@@ -133,15 +190,10 @@ ChatWindow::on_btnSend_clicked()
   ui->editMessage->setFocus();
 
   QUuid msg_uuid = QUuid::createUuid();
-  GJson json;
-  json["Action"] = "NewMessage";
-  json["MessageId"] = msg_uuid.toRfc4122();
-  json["Message"] = msg;
-  int msg_id = gEmm->sendMessage(user_uuid_, json).id();
+  send_new_message(msg_uuid, msg);
 
   ChatOutgoingMessage *msg_widget = new ChatOutgoingMessage(msg);
   outgoing_messages_.insert(msg_uuid, msg_widget);
-  sent_messages_.insert(msg_id, msg_uuid);
 
   connect(msg_widget->labelStatus(), SIGNAL(linkActivated(QString)),
           SLOT(onMessageLinkClicked(QString)), Qt::QueuedConnection);
@@ -197,10 +249,33 @@ ChatWindow::processNewMessage(const GJson& json)
   ui->listHistory->setItemWidget(item, 0, new ChatIncomingMessage(json["Message"].toString()));
   ui->listHistory->scrollToItem(item);
 
-  GJson resp;
-  resp["Action"] = "MessageViewed";
-  resp["MessageId"] = msg_uuid.toRfc4122();
-  gEmm->sendMessage(user_uuid_, resp);
+  if (is_on_top_)
+    send_message_viewed(msg_uuid);
+  else
+    unread_messages_.insert(msg_uuid);
+
+  set_icon_blinks();
+}
+
+void
+ChatWindow::processMessageViewed(const GJson& json)
+{
+  QUuid msg_uuid = QUuid::fromRfc4122(json["MessageId"].toByteArray());
+  if (msg_uuid.isNull())
+    {
+      qDebug("ChatWindow::processMessageViewed(): Invalid message uuid.");
+      return;
+    }
+
+  if (!outgoing_messages_.contains(msg_uuid))
+    {
+      qDebug("ChatWindow::processMessageViewed(): unknown message guid.");
+      return;
+    }
+
+  outgoing_messages_[msg_uuid]->labelStatus()->setText(
+    QDateTime::currentDateTime().toString(
+      QStringLiteral("'Viewed at 'dd.MM.yy HH:mm")));
 }
 
 void
@@ -216,10 +291,50 @@ ChatWindow::onMessageLinkClicked(QString strLink)
   ChatOutgoingMessage *msg_widget = outgoing_messages_[msg_uuid];
   msg_widget->labelStatus()->setText(QStringLiteral("Sending..."));
 
+  send_new_message(msg_uuid, msg_widget->messageText());
+}
+
+void
+ChatWindow::clear_unread_messages()
+{
+  for (const QUuid& uuid : unread_messages_)
+    send_message_viewed(uuid);
+  unread_messages_.clear();
+  set_icon_blinks();
+}
+
+void
+ChatWindow::send_new_message(const QUuid& msg_uuid, const QString& msg)
+{
   GJson json;
   json["Action"] = "NewMessage";
   json["MessageId"] = msg_uuid.toRfc4122();
-  json["Message"] = msg_widget->messageText();
-  int msg_id = gEmm->sendMessage(user_uuid_, json).id();
-  sent_messages_.insert(msg_id, msg_uuid);
+  json["Message"] = msg;
+  sent_messages_.insert(gEmm->sendMessage(user_uuid_, json).id(), msg_uuid);
+}
+
+void
+ChatWindow::send_message_viewed(const QUuid& uuid)
+{
+  GJson json;
+  json["Action"] = "MessageViewed";
+  json["MessageId"] = uuid.toRfc4122();
+  gEmm->sendMessage(user_uuid_, json);
+}
+
+void
+ChatWindow::set_icon_blinks()
+{
+  bool blinks = !unread_messages_.isEmpty();
+  if (icon_blinks_ == blinks)
+    return;
+
+  icon_blinks_ = blinks;
+  updateUserState();
+
+  if (icon_blinks_ && isVisible())
+    QApplication::alert(this);
+
+  emit
+    unreadMessageListChanged();
 }

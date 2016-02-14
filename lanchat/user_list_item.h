@@ -28,6 +28,12 @@ public:
   void updateActivity();
   int inactivityMilliseconds() const;
 
+  /**
+   * @brief updateIcon
+   * @return true, if item blinking (has unread messages)
+   */
+  bool updateIcon();
+
 public:
   static UserListItem* findItem(const QUuid& uuid);
   static QList<QPair<QUuid,QString> > loadItems();
