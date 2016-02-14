@@ -44,7 +44,12 @@ LanChatApp::iconUserOnline()
   static QIcon icon;
   if (icon.isNull())
     {
-      icon.addFile(QStringLiteral(":/res/icons16/user-online.png"));
+      icon.addFile(QStringLiteral(":/res/user_online/16x16.png"));
+      icon.addFile(QStringLiteral(":/res/user_online/24x24.png"));
+      icon.addFile(QStringLiteral(":/res/user_online/32x32.png"));
+      icon.addFile(QStringLiteral(":/res/user_online/48x48.png"));
+      icon.addFile(QStringLiteral(":/res/user_online/64x64.png"));
+      icon.addFile(QStringLiteral(":/res/user_online/128x128.png"));
     }
   return icon;
 }
@@ -55,7 +60,12 @@ LanChatApp::iconUserOffline()
   static QIcon icon;
   if (icon.isNull())
     {
-      icon.addFile(QStringLiteral(":/res/icons16/user-offline.png"));
+      icon.addFile(QStringLiteral(":/res/user_offline/16x16.png"));
+      icon.addFile(QStringLiteral(":/res/user_offline/24x24.png"));
+      icon.addFile(QStringLiteral(":/res/user_offline/32x32.png"));
+      icon.addFile(QStringLiteral(":/res/user_offline/48x48.png"));
+      icon.addFile(QStringLiteral(":/res/user_offline/64x64.png"));
+      icon.addFile(QStringLiteral(":/res/user_offline/128x128.png"));
     }
   return icon;
 }

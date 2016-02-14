@@ -7,7 +7,17 @@
         <file>res/main_icon/128x128.png</file>
         <file>res/bitmaps/in_arraw.png</file>
         <file>res/bitmaps/out_arraw.png</file>
-        <file>res/icons16/user-offline.png</file>
-        <file>res/icons16/user-online.png</file>
+        <file>res/user_online/16x16.png</file>
+        <file>res/user_online/24x24.png</file>
+        <file>res/user_online/32x32.png</file>
+        <file>res/user_online/48x48.png</file>
+        <file>res/user_online/64x64.png</file>
+        <file>res/user_online/128x128.png</file>
+        <file>res/user_offline/16x16.png</file>
+        <file>res/user_offline/24x24.png</file>
+        <file>res/user_offline/32x32.png</file>
+        <file>res/user_offline/48x48.png</file>
+        <file>res/user_offline/64x64.png</file>
+        <file>res/user_offline/128x128.png</file>
     </qresource>
 </RCC>
