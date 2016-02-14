@@ -1,6 +1,7 @@
 #include <QCloseEvent>
 #include <QSettings>
 #include <QMetaMethod>
+#include <QMessageBox>
 
 #include "app.h"
 #include "about_box.h"
@@ -20,7 +21,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow),
   online_header_(0),
   offline_header_(0),
-  check_inactivity_timer_(this)
+  check_inactivity_timer_(this),
+  tray_icon_(0)
 {
   ui->setupUi(this);
 
@@ -72,6 +74,17 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(&check_inactivity_timer_, SIGNAL(timeout()), SLOT(checkInactivity()),
           Qt::QueuedConnection);
 
+  if (QSystemTrayIcon::isSystemTrayAvailable())
+    {
+      qRegisterMetaType<QSystemTrayIcon::ActivationReason>("QSystemTrayIcon::ActivationReason");
+
+      tray_icon_ = new QSystemTrayIcon(qApp->iconMain(), this);
+      connect(tray_icon_, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
+              SLOT(onTrayIconActivated(QSystemTrayIcon::ActivationReason)),
+              Qt::QueuedConnection);
+      tray_icon_->show();
+    }
+
   check_inactivity_timer_.start(1000);
 }
 
@@ -87,10 +100,23 @@ MainWindow::closeEvent(QCloseEvent* event)
   settings.beginGroup(MAIN_WINDOW_GROUP);
   settings.setValue(MAIN_WINDOW_GEOMETRY_KEY, saveGeometry());
 
-  if (event->spontaneous())
-    event->ignore();
+  if (event->spontaneous() && (0 != tray_icon_))
+    {
+      event->ignore();
+      hide();
+    }
   else
     {
+      if (QMessageBox::Yes != QMessageBox::question(this,
+        QStringLiteral("Lan Chat :: Confirmation"),
+        QStringLiteral("<B>Lan Chat does not save any messaged history!</B><BR>"
+        "<BR>Quitting Lan Chat will cause the loss all of messages (sent and "
+        "received), as well as the inability to further message receiving.<BR>"
+        "<BR>Are you really sure to quit the application?")))
+        {
+          event->ignore();
+          return;
+        }
       event->accept();
       ChatWindow::destroyAllWindows();
     }
@@ -122,6 +148,24 @@ MainWindow::on_listUsers_itemDoubleClicked(QTreeWidgetItem* item, int)
     return;
 
   ChatWindow::createWindow(this, uli->uuid(), true);
+}
+
+void
+MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
+{
+  switch(reason)
+    {
+    case QSystemTrayIcon::DoubleClick:
+    case QSystemTrayIcon::Trigger:
+      if (!isVisible())
+        show();
+      if (isMaximized())
+        showNormal();
+      break;
+
+    default:
+      break;
+    }
 }
 
 void
