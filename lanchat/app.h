@@ -22,6 +22,7 @@ public:
   QIcon iconUserOffline();
   QIcon iconMessageBlinkOn();
   QIcon iconMessageBlinkOff();
+  QIcon iconMessageBlinkCurrent();
 
   bool isInitialized() const;
   const QString& errorString() const;
@@ -41,6 +42,8 @@ signals:
                          int uncompressed_size);
   void userIsOnLine(QUuid uuid, QString name, QHostAddress host);
   void userIsOffLine(QUuid uuid);
+
+  void iconBlinks();
 
 private:
   LanChatAppPrivate *d;

@@ -85,6 +85,9 @@ MainWindow::MainWindow(QWidget *parent) :
       tray_icon_->show();
     }
 
+  connect(qApp, SIGNAL(iconBlinks()), SLOT(onIconBlinks()),
+          Qt::QueuedConnection);
+
   check_inactivity_timer_.start(1000);
 }
 
@@ -166,6 +169,13 @@ MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
     default:
       break;
     }
+}
+
+void
+MainWindow::onIconBlinks()
+{
+  if (0 != tray_icon_)
+    tray_icon_->setIcon(qApp->iconMessageBlinkCurrent());
 }
 
 void

@@ -29,7 +29,10 @@ private:
 
   QUdpSocket* socket_;
 
-  QTimer notify_presence_timer_;
+  QTimer notify_presence_timer_,
+         icon_blink_timer_;
+
+  bool blink_state_;
 
   EncryptedMessageManager emm_;
 
@@ -41,6 +44,7 @@ signals:
 private slots:
   void notify_presence();
   void socket_ready_read();
+  void icon_blink_timer();
 
 private slots:
   void processActionNotifyOnline(const QHostAddress& host, const GJson& json);

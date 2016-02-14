@@ -42,6 +42,7 @@ private slots:
   void on_listUsers_itemDoubleClicked(QTreeWidgetItem* item, int);
 
   void onTrayIconActivated(QSystemTrayIcon::ActivationReason reason);
+  void onIconBlinks();
 
 private slots:
   void onUserIsOnLine(QUuid uuid, QString name, QHostAddress host);

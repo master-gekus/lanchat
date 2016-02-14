@@ -10,6 +10,7 @@
 
 #define LANCHAT_PORT 7251
 #define NOTIFY_INTERVAL 5000
+#define ICON_BLING_INTERVAL 500
 
 #define USER_DATA_GROUP QStringLiteral("User Data")
 #define USER_UUID QStringLiteral("uuid")
@@ -102,6 +103,12 @@ LanChatApp::iconMessageBlinkOff()
   return icon;
 }
 
+QIcon
+LanChatApp::iconMessageBlinkCurrent()
+{
+  return (d->blink_state_) ? iconMessageBlinkOn() : iconMessageBlinkOff();
+}
+
 bool
 LanChatApp::isInitialized() const
 {
@@ -151,6 +158,8 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
   error_string_(QStringLiteral("No error.")),
   socket_(new QUdpSocket()),
   notify_presence_timer_(this),
+  icon_blink_timer_(this),
+  blink_state_(false),
   emm_(owner)
 {
   qRegisterMetaType<QHostAddress>("QHostAddress");
@@ -196,10 +205,14 @@ LanChatAppPrivate::LanChatAppPrivate(LanChatApp *owner) :
           Qt::QueuedConnection);
 
   Q_ASSERT(!notify_presence_timer_.isSingleShot());
-  connect(&notify_presence_timer_, SIGNAL(timeout()), this,
-          SLOT(notify_presence()), Qt::QueuedConnection);
+  connect(&notify_presence_timer_, SIGNAL(timeout()), SLOT(notify_presence()),
+          Qt::QueuedConnection);
   notify_presence_timer_.start(NOTIFY_INTERVAL);
   QMetaObject::invokeMethod(this, "notify_presence", Qt::QueuedConnection);
+
+  connect(&icon_blink_timer_, SIGNAL(timeout()), SLOT(icon_blink_timer()),
+          Qt::QueuedConnection);
+  icon_blink_timer_.start(ICON_BLING_INTERVAL);
 
   initialized_ = true;
 }
@@ -359,6 +372,14 @@ LanChatAppPrivate::process_datagram(const QHostAddress& host,
                                                 Q_ARG(QHostAddress, host),
                                                 Q_ARG(GJson, msg));
     }
+}
+
+void
+LanChatAppPrivate::icon_blink_timer()
+{
+  blink_state_ = !blink_state_;
+  emit
+    owner_->iconBlinks();
 }
 
 // ////////////////////////////////////////////////////////////////////////////
