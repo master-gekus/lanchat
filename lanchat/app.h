@@ -20,6 +20,8 @@ public:
   QIcon iconMain();
   QIcon iconUserOnline();
   QIcon iconUserOffline();
+  QIcon iconMessageBlinkOn();
+  QIcon iconMessageBlinkOff();
 
   bool isInitialized() const;
   const QString& errorString() const;

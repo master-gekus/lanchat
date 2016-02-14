@@ -70,6 +70,37 @@ LanChatApp::iconUserOffline()
   return icon;
 }
 
+QIcon
+LanChatApp::iconMessageBlinkOn()
+{
+  static QIcon icon;
+  if (icon.isNull())
+    {
+      icon.addFile(QStringLiteral(":/res/new_msg_on/16x16.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_on/24x24.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_on/32x32.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_on/48x48.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_on/64x64.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_on/128x128.png"));
+    }
+  return icon;
+}
+
+QIcon
+LanChatApp::iconMessageBlinkOff()
+{
+  static QIcon icon;
+  if (icon.isNull())
+    {
+      icon.addFile(QStringLiteral(":/res/new_msg_off/16x16.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_off/24x24.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_off/32x32.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_off/48x48.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_off/64x64.png"));
+      icon.addFile(QStringLiteral(":/res/new_msg_off/128x128.png"));
+    }
+  return icon;
+}
 
 bool
 LanChatApp::isInitialized() const

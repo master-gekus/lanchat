@@ -19,5 +19,17 @@
         <file>res/user_offline/48x48.png</file>
         <file>res/user_offline/64x64.png</file>
         <file>res/user_offline/128x128.png</file>
+        <file>res/new_msg_on/16x16.png</file>
+        <file>res/new_msg_on/24x24.png</file>
+        <file>res/new_msg_on/32x32.png</file>
+        <file>res/new_msg_on/48x48.png</file>
+        <file>res/new_msg_on/64x64.png</file>
+        <file>res/new_msg_on/128x128.png</file>
+        <file>res/new_msg_off/16x16.png</file>
+        <file>res/new_msg_off/24x24.png</file>
+        <file>res/new_msg_off/32x32.png</file>
+        <file>res/new_msg_off/48x48.png</file>
+        <file>res/new_msg_off/64x64.png</file>
+        <file>res/new_msg_off/128x128.png</file>
     </qresource>
 </RCC>
