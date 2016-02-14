@@ -148,6 +148,7 @@ ChatWindow::on_btnSend_clicked()
 
   QTreeWidgetItem *item = new QTreeWidgetItem();
   ui->listHistory->addTopLevelItem(item);
+  item->setFlags(item->flags() & (~Qt::ItemIsEnabled));
   ui->listHistory->setItemWidget(item, 0, msg_widget);
   ui->listHistory->scrollToItem(item);
 }
@@ -192,6 +193,7 @@ ChatWindow::processNewMessage(const GJson& json)
     }
   QTreeWidgetItem *item = new QTreeWidgetItem();
   ui->listHistory->addTopLevelItem(item);
+  item->setFlags(item->flags() & (~Qt::ItemIsEnabled));
   ui->listHistory->setItemWidget(item, 0, new ChatIncomingMessage(json["Message"].toString()));
   ui->listHistory->scrollToItem(item);
 
