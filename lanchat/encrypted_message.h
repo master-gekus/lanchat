@@ -25,6 +25,7 @@ public:
   bool isValid() const;
   int id() const;
   QByteArray data() const;
+  quint64 creationTime() const;
 
 private:
   explicit EncryptedMessage(const QByteArray& data);

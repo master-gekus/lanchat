@@ -8,7 +8,8 @@
 
 #include "encrypted_message_p.h"
 
-#define SESSION_CONFIRM_WAIT_TIME 5000
+#define SESSION_CONFIRM_TIMEOUT 50000
+#define MESSAGE_SEND_TIMEOUT 50000
 
 typedef SimpleDiffieHellman<quint32> DiffieHellman;
 
@@ -308,7 +309,8 @@ class EncryptedMessagePrivate : public QSharedData
 private:
   EncryptedMessagePrivate(const QByteArray& data) :
     id_(++last_used_id_),
-    data_(data)
+    data_(data),
+    creation_time_(QDateTime::currentMSecsSinceEpoch())
   {
   }
 
@@ -322,6 +324,7 @@ private:
 private:
   int id_;
   QByteArray data_;
+  quint64 creation_time_;
 
 private:
   static int last_used_id_;
@@ -383,6 +386,16 @@ EncryptedMessage::data() const
     return QByteArray();
   return p->data_;
 }
+
+quint64 EncryptedMessage::creationTime() const
+{
+  auto p = d.data();
+  if (0 == p)
+    return QDateTime::currentMSecsSinceEpoch(); // Forever alive!
+
+  return p->creation_time_;
+}
+
 
 // ////////////////////////////////////////////////////////////////////////////
 EncryptedMessageManagerPrivate::EncryptedMessageManagerPrivate(EncryptedMessageManager *owner,
@@ -469,23 +482,39 @@ void
 EncryptedMessageManagerPrivate::check_expired()
 {
   quint64 cur_time = QDateTime::currentMSecsSinceEpoch();
-  QList<EncryptionSession*> to_delete;
+  QList<EncryptionSession*> sessions_to_delete;
   for (EncryptionSession *s : sessions_by_id)
     {
       if (s->state == EncryptionSession::Active)
-        continue;
-
-      if ((cur_time - s->last_activity_time) < SESSION_CONFIRM_WAIT_TIME)
-        continue;
-
-      for (EncryptedMessage const& msg : s->messages_to_send)
         {
-          emitSendingResult(msg, false,
-                            QStringLiteral("Session initiation timeout."));
+          QList<int> messages_to_delete;
+          for (auto it = s->messages_to_confirm.constBegin();
+               it != s->messages_to_confirm.constEnd(); ++it)
+            {
+              if ((cur_time - it.value().creationTime()) > MESSAGE_SEND_TIMEOUT)
+                messages_to_delete.append(it.key());
+            }
+          for (int i : messages_to_delete)
+            emitSendingResult(s->messages_to_confirm.take(i), false,
+                              QStringLiteral("Message send timeout."));
         }
-      to_delete.append(s);
+      else
+        {
+          if ((cur_time - s->last_activity_time) < SESSION_CONFIRM_TIMEOUT)
+            continue;
+
+          for (EncryptedMessage const& msg : s->messages_to_send)
+            emitSendingResult(msg, false,
+                              QStringLiteral("Session initiation timeout."));
+
+          for (EncryptedMessage const& msg : s->messages_to_confirm)
+            emitSendingResult(msg, false,
+                              QStringLiteral("Session initiation timeout."));
+
+          sessions_to_delete.append(s);
+        }
     }
-  for (EncryptionSession *s : to_delete)
+  for (EncryptionSession *s : sessions_to_delete)
     delete s;
 }
 
