@@ -112,10 +112,10 @@ MainWindow::closeEvent(QCloseEvent* event)
     {
       if (QMessageBox::Yes != QMessageBox::question(this,
         QStringLiteral("Lan Chat :: Confirmation"),
-        QStringLiteral("<B>Lan Chat does not save any messaged history!</B><BR>"
+        "<B>Lan Chat does not save any messaged history!</B><BR>"
         "<BR>Quitting Lan Chat will cause the loss all of messages (sent and "
         "received), as well as the inability to further message receiving.<BR>"
-        "<BR>Are you really sure to quit the application?")))
+        "<BR>Are you really sure to quit the application?"))
         {
           event->ignore();
           return;
