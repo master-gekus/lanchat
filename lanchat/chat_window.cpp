@@ -170,10 +170,16 @@ ChatWindow::changeEvent(QEvent *event)
   if (QEvent::ActivationChange != event->type())
     return;
 
-  bool is_active = (isVisible() && isActiveWindow());
+  bool is_active = (isVisible() && isActiveWindow() &&
+                   (this == QApplication::activeWindow()));
   if (is_on_top_ == is_active)
     return;
   is_on_top_ = is_active;
+
+//  UserListItem *item = UserListItem::findItem(user_uuid_);
+//  Q_ASSERT(0 != item);
+//  qDebug("Window \"%s\" became %s.", item->name().toUtf8().constData(),
+//         is_on_top_ ? "ACTIVE" : "inactive");
 
   if (is_on_top_)
     QMetaObject::invokeMethod(this, "clear_unread_messages",
