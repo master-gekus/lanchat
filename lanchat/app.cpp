@@ -3,6 +3,8 @@
 #include <QHostInfo>
 #include <QMetaMethod>
 
+#include "GUiHelpers.h"
+
 #include "message_composer.h"
 
 #include "app.h"
@@ -28,14 +30,7 @@ QIcon
 LanChatApp::iconMain()
 {
   static QIcon icon;
-  if (icon.isNull())
-    {
-      icon.addFile(QStringLiteral(":/res/main_icon/16x16.png"));
-      icon.addFile(QStringLiteral(":/res/main_icon/32x32.png"));
-      icon.addFile(QStringLiteral(":/res/main_icon/48x48.png"));
-      icon.addFile(QStringLiteral(":/res/main_icon/64x64.png"));
-      icon.addFile(QStringLiteral(":/res/main_icon/128x128.png"));
-    }
+  GUiHelpers::loadIcon(icon, QStringLiteral(":/res/main_icon"));
   return icon;
 }
 
@@ -43,15 +38,7 @@ QIcon
 LanChatApp::iconUserOnline()
 {
   static QIcon icon;
-  if (icon.isNull())
-    {
-      icon.addFile(QStringLiteral(":/res/user_online/16x16.png"));
-      icon.addFile(QStringLiteral(":/res/user_online/24x24.png"));
-      icon.addFile(QStringLiteral(":/res/user_online/32x32.png"));
-      icon.addFile(QStringLiteral(":/res/user_online/48x48.png"));
-      icon.addFile(QStringLiteral(":/res/user_online/64x64.png"));
-      icon.addFile(QStringLiteral(":/res/user_online/128x128.png"));
-    }
+  GUiHelpers::loadIcon(icon, QStringLiteral(":/res/user_online"));
   return icon;
 }
 
@@ -59,15 +46,7 @@ QIcon
 LanChatApp::iconUserOffline()
 {
   static QIcon icon;
-  if (icon.isNull())
-    {
-      icon.addFile(QStringLiteral(":/res/user_offline/16x16.png"));
-      icon.addFile(QStringLiteral(":/res/user_offline/24x24.png"));
-      icon.addFile(QStringLiteral(":/res/user_offline/32x32.png"));
-      icon.addFile(QStringLiteral(":/res/user_offline/48x48.png"));
-      icon.addFile(QStringLiteral(":/res/user_offline/64x64.png"));
-      icon.addFile(QStringLiteral(":/res/user_offline/128x128.png"));
-    }
+  GUiHelpers::loadIcon(icon, QStringLiteral(":/res/user_offline"));
   return icon;
 }
 
@@ -75,15 +54,7 @@ QIcon
 LanChatApp::iconMessageBlinkOn()
 {
   static QIcon icon;
-  if (icon.isNull())
-    {
-      icon.addFile(QStringLiteral(":/res/new_msg_on/16x16.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_on/24x24.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_on/32x32.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_on/48x48.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_on/64x64.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_on/128x128.png"));
-    }
+  GUiHelpers::loadIcon(icon, QStringLiteral(":/res/new_msg_on"));
   return icon;
 }
 
@@ -91,15 +62,7 @@ QIcon
 LanChatApp::iconMessageBlinkOff()
 {
   static QIcon icon;
-  if (icon.isNull())
-    {
-      icon.addFile(QStringLiteral(":/res/new_msg_off/16x16.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_off/24x24.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_off/32x32.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_off/48x48.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_off/64x64.png"));
-      icon.addFile(QStringLiteral(":/res/new_msg_off/128x128.png"));
-    }
+  GUiHelpers::loadIcon(icon, QStringLiteral(":/res/new_msg_off"));
   return icon;
 }
 
